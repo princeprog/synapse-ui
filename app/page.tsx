@@ -1,10 +1,10 @@
-"use client";
 
 import Image from "next/image";
+import Link from "next/link";
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen w-full flex bg-[#EBF1FB]">
+    <div className="min-h-screen w-full flex bg-[#EBF1FB]" suppressHydrationWarning>
       <div
         className="w-full min-h-screen flex flex-col md:flex-row overflow-hidden shadow-none"
       >
@@ -56,7 +56,7 @@ export default function LoginPage() {
           </div>
 
           {/* Form */}
-          <form className="w-full max-w-sm space-y-4" onSubmit={(e) => e.preventDefault()}>
+          <form className="w-full max-w-sm space-y-4">
             {/* Username */}
             <div className="relative group">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
@@ -109,12 +109,12 @@ export default function LoginPage() {
                 />
                 Remember me
               </label>
-              <a
+              <Link
                 href="#"
                 className="text-indigo-500 hover:text-indigo-700 font-medium transition-colors"
               >
                 Forgot password?
-              </a>
+              </Link>
             </div>
 
             {/* Submit Button */}
@@ -170,9 +170,9 @@ export default function LoginPage() {
           {/* Sign up link */}
           <p className="mt-8 text-sm text-slate-500">
             Not a member?{" "}
-            <a href="#" className="font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
+            <Link href="#" className="font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
               Create an account
-            </a>
+            </Link>
           </p>
         </div>
       </div>
