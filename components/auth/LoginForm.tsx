@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/common/button";
+import { Checkbox } from "@/components/common/checkbox";
+import { Input } from "@/components/common/input";
+import { Label } from "@/components/common/label";
 
 export default function LoginForm() {
   return (

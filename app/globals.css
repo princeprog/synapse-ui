@@ -138,3 +138,120 @@
 .logo-float-animation {
   animation: logoFloat 8s ease-in-out infinite;
 }
+
+.auth-bubbles-area {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(to left, #e3ecfd, #d2e2fb);
+}
+
+.auth-bubbles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.auth-bubble {
+  position: absolute;
+  display: block;
+  list-style: none;
+  background: rgba(79, 124, 207, 0.18);
+  bottom: -150px;
+  border-radius: 9999px;
+  animation: authBubbleRise 25s linear infinite;
+  will-change: transform, opacity;
+}
+
+.auth-bubble-1 {
+  width: 80px;
+  height: 80px;
+  left: 25%;
+  animation-delay: 0s;
+}
+
+.auth-bubble-2 {
+  width: 20px;
+  height: 20px;
+  left: 10%;
+  animation-delay: 2s;
+  animation-duration: 12s;
+}
+
+.auth-bubble-3 {
+  width: 20px;
+  height: 20px;
+  left: 70%;
+  animation-delay: 4s;
+}
+
+.auth-bubble-4 {
+  width: 60px;
+  height: 60px;
+  left: 40%;
+  animation-delay: 0s;
+  animation-duration: 18s;
+}
+
+.auth-bubble-5 {
+  width: 20px;
+  height: 20px;
+  left: 65%;
+  animation-delay: 0s;
+}
+
+.auth-bubble-6 {
+  width: 110px;
+  height: 110px;
+  left: 75%;
+  animation-delay: 3s;
+}
+
+.auth-bubble-7 {
+  width: 150px;
+  height: 150px;
+  left: 35%;
+  animation-delay: 7s;
+}
+
+.auth-bubble-8 {
+  width: 25px;
+  height: 25px;
+  left: 50%;
+  animation-delay: 15s;
+  animation-duration: 45s;
+}
+
+.auth-bubble-9 {
+  width: 15px;
+  height: 15px;
+  left: 20%;
+  animation-delay: 2s;
+  animation-duration: 35s;
+}
+
+.auth-bubble-10 {
+  width: 150px;
+  height: 150px;
+  left: 85%;
+  animation-delay: 0s;
+  animation-duration: 11s;
+}
+
+@keyframes authBubbleRise {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-1000px) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-bubble,
+  .logo-float-animation {
+    animation: none;
+  }
+}
