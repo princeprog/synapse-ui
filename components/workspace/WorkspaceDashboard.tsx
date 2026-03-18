@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/common/button";
-import { useLogoutMutation } from "@/hooks/mutation/useLogoutMutation";
+import { useLogoutMutation } from "@/hooks/mutation/auth/useLogoutMutation";
 import ThemeToggleButton from "@/components/workspace/ThemeToggleButton";
 
 type Role = "Admin" | "Member" | "Guest";

@@ -8,7 +8,7 @@ import { Button } from "@/components/common/button";
 import { Checkbox } from "@/components/common/checkbox";
 import { Input } from "@/components/common/input";
 import { Label } from "@/components/common/label";
-import { useLoginMutation } from "@/hooks/mutation/useLoginMutation";
+import { useLoginMutation } from "@/hooks/mutation/auth/useLoginMutation";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -120,7 +120,7 @@ export default function LoginForm() {
 
         <p className="mt-8 text-sm text-slate-500 text-center">
           Don&apos;t have an account?{" "}
-          <Link href="/sign-up" className="font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
+          <Link href="/register" className="font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
             Sign up for free!
           </Link>
         </p>
