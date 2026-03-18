@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Bell,
@@ -16,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/common/button";
+import { useLogoutMutation } from "@/hooks/mutation/useLogoutMutation";
 import ThemeToggleButton from "@/components/workspace/ThemeToggleButton";
 
 type Role = "Admin" | "Member" | "Guest";
@@ -100,6 +104,17 @@ const roleStyles: Record<Role, string> = {
 };
 
 export default function WorkspaceDashboard() {
+  const router = useRouter();
+  const { mutate: logout, isPending: isLoggingOut } = useLogoutMutation();
+
+  const handleLogout = () => {
+    logout(undefined, {
+      onSuccess: () => {
+        router.push("/login");
+      },
+    });
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-[#EBF1FB] transition-colors dark:bg-slate-950">
       <header className="border-b border-slate-200 bg-white shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
@@ -141,6 +156,16 @@ export default function WorkspaceDashboard() {
             >
               <UserRound className="h-4 w-4" />
             </button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="ml-1"
+            >
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </Button>
           </div>
         </div>
       </header>
