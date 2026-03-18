@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import {
   ArrowRight,
   Bell,
@@ -78,6 +78,10 @@ export default function WorkspaceDashboard() {
   const { mutate: updateWorkspace, isPending: isUpdating } = useUpdateWorkspaceMutation();
   const { mutate: deleteWorkspace, isPending: isDeleting } = useDeleteWorkspaceMutation();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [workspaceNameInput, setWorkspaceNameInput] = useState("");
+  const [workspaceSlugInput, setWorkspaceSlugInput] = useState("");
+  const [createModalError, setCreateModalError] = useState<string | null>(null);
 
   const isMutating = isCreating || isUpdating || isDeleting;
 
@@ -89,19 +93,45 @@ export default function WorkspaceDashboard() {
     });
   };
 
-  const handleCreateWorkspace = () => {
-    const name = window.prompt("Enter workspace name:");
+  const handleOpenCreateModal = () => {
+    setCreateModalError(null);
+    setWorkspaceNameInput("");
+    setWorkspaceSlugInput("");
+    setIsCreateModalOpen(true);
+  };
 
-    if (!name || !name.trim()) {
+  const handleCloseCreateModal = () => {
+    if (isCreating) {
+      return;
+    }
+    setIsCreateModalOpen(false);
+  };
+
+  const handleCreateWorkspace = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmedName = workspaceNameInput.trim();
+    const trimmedSlug = workspaceSlugInput.trim();
+
+    if (!trimmedName) {
+      setCreateModalError("Workspace name is required.");
       return;
     }
 
+    setCreateModalError(null);
     setActionError(null);
+
     createWorkspace(
-      { name: name.trim() },
       {
+        name: trimmedName,
+        slug: trimmedSlug || undefined,
+      },
+      {
+        onSuccess: () => {
+          setIsCreateModalOpen(false);
+        },
         onError: (mutationError) => {
-          setActionError(mutationError.message);
+          setCreateModalError(mutationError.message);
         },
       },
     );
@@ -317,7 +347,7 @@ export default function WorkspaceDashboard() {
               variant="auth"
               size="auth"
               disabled={isMutating}
-              onClick={handleCreateWorkspace}
+              onClick={handleOpenCreateModal}
               className="mt-6 h-11 w-full bg-blue-600 text-base font-semibold text-white hover:bg-blue-700"
             >
               {isCreating ? "Creating..." : "Create Workspace"}
@@ -340,6 +370,77 @@ export default function WorkspaceDashboard() {
           </div>
         </section>
       </main>
+
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <div className="mb-5">
+              <h2 className="text-2xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">
+                Create Workspace
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Enter a workspace name and an optional custom slug.
+              </p>
+            </div>
+
+            <form className="space-y-4" onSubmit={handleCreateWorkspace}>
+              <div>
+                <label
+                  htmlFor="workspace-name"
+                  className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200"
+                >
+                  Workspace name
+                </label>
+                <input
+                  id="workspace-name"
+                  type="text"
+                  value={workspaceNameInput}
+                  onChange={(event) => setWorkspaceNameInput(event.target.value)}
+                  placeholder="e.g. Engineering Hub"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition-colors focus:border-blue-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="workspace-slug"
+                  className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200"
+                >
+                  Workspace slug
+                </label>
+                <input
+                  id="workspace-slug"
+                  type="text"
+                  value={workspaceSlugInput}
+                  onChange={(event) => setWorkspaceSlugInput(event.target.value)}
+                  placeholder="e.g. engineering-hub"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition-colors focus:border-blue-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                />
+              </div>
+
+              {createModalError && (
+                <p className="text-sm text-red-600" role="alert">
+                  {createModalError}
+                </p>
+              )}
+
+              <div className="mt-2 flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCloseCreateModal}
+                  disabled={isCreating}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="auth" disabled={isCreating}>
+                  {isCreating ? "Creating..." : "Create Workspace"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex w-full max-w-350 flex-col items-center justify-between gap-3 px-6 py-4 text-sm text-slate-500 dark:text-slate-400 sm:flex-row md:px-8">
