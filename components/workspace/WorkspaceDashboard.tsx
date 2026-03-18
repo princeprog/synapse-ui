@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   ArrowRight,
   Bell,
@@ -20,60 +21,19 @@ import {
 
 import { Button } from "@/components/common/button";
 import { useLogoutMutation } from "@/hooks/mutation/auth/useLogoutMutation";
+import { useCreateWorkspaceMutation } from "@/hooks/mutation/workspaces/useCreateWorkspaceMutation";
+import { useDeleteWorkspaceMutation } from "@/hooks/mutation/workspaces/useDeleteWorkspaceMutation";
+import { useUpdateWorkspaceMutation } from "@/hooks/mutation/workspaces/useUpdateWorkspaceMutation";
+import { useWorkspacesQuery } from "@/hooks/queries/workspaces/useWorkspacesQuery";
+import { Workspace } from "@/lib/types/workspace.types";
 import ThemeToggleButton from "@/components/workspace/ThemeToggleButton";
 
-type Role = "Admin" | "Member" | "Guest";
-
-type WorkspaceItem = {
-  name: string;
-  description: string;
-  members: number;
-  role: Role;
-  icon: LucideIcon;
-  href: string;
-};
-
-const workspaces: WorkspaceItem[] = [
-  {
-    name: "Product Design",
-    description: "Core UI/UX team focusing on the 2026 redesign and component library.",
-    members: 12,
-    role: "Admin",
-    icon: BriefcaseBusiness,
-    href: "#",
-  },
-  {
-    name: "Engineering Hub",
-    description: "Backend architecture, API documentation, and infrastructure scaling.",
-    members: 28,
-    role: "Member",
-    icon: Zap,
-    href: "#",
-  },
-  {
-    name: "Marketing Ops",
-    description: "Global campaign management, asset libraries, and social coordination.",
-    members: 8,
-    role: "Member",
-    icon: Globe,
-    href: "#",
-  },
-  {
-    name: "Executive Strategy",
-    description: "Q4 roadmaps, board meetings, and high-level initiative tracking.",
-    members: 5,
-    role: "Guest",
-    icon: ShieldCheck,
-    href: "#",
-  },
-  {
-    name: "Cloud Infrastructure",
-    description: "DevOps, SRE, and cloud resource management for production clusters.",
-    members: 14,
-    role: "Admin",
-    icon: Cloud,
-    href: "#",
-  },
+const workspaceIcons: LucideIcon[] = [
+  BriefcaseBusiness,
+  Zap,
+  Globe,
+  ShieldCheck,
+  Cloud,
 ];
 
 const highlights = [
@@ -94,18 +54,32 @@ const highlights = [
   },
 ];
 
-const roleStyles: Record<Role, string> = {
-  Admin:
+const roleStyles: Record<string, string> = {
+  admin:
     "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700",
-  Member:
+  member:
     "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900",
-  Guest:
+  guest:
     "bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900",
+};
+
+const defaultRoleStyle =
+  "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700";
+
+const getRoleStyle = (role: string): string => {
+  return roleStyles[role.toLowerCase()] || defaultRoleStyle;
 };
 
 export default function WorkspaceDashboard() {
   const router = useRouter();
   const { mutate: logout, isPending: isLoggingOut } = useLogoutMutation();
+  const { data: workspaces = [], isLoading, error } = useWorkspacesQuery();
+  const { mutate: createWorkspace, isPending: isCreating } = useCreateWorkspaceMutation();
+  const { mutate: updateWorkspace, isPending: isUpdating } = useUpdateWorkspaceMutation();
+  const { mutate: deleteWorkspace, isPending: isDeleting } = useDeleteWorkspaceMutation();
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const isMutating = isCreating || isUpdating || isDeleting;
 
   const handleLogout = () => {
     logout(undefined, {
@@ -114,6 +88,62 @@ export default function WorkspaceDashboard() {
       },
     });
   };
+
+  const handleCreateWorkspace = () => {
+    const name = window.prompt("Enter workspace name:");
+
+    if (!name || !name.trim()) {
+      return;
+    }
+
+    setActionError(null);
+    createWorkspace(
+      { name: name.trim() },
+      {
+        onError: (mutationError) => {
+          setActionError(mutationError.message);
+        },
+      },
+    );
+  };
+
+  const handleRenameWorkspace = (workspace: Workspace) => {
+    const nextName = window.prompt("Enter new workspace name:", workspace.name);
+
+    if (!nextName || !nextName.trim() || nextName.trim() === workspace.name) {
+      return;
+    }
+
+    setActionError(null);
+    updateWorkspace(
+      {
+        id: workspace.id,
+        payload: { name: nextName.trim() },
+      },
+      {
+        onError: (mutationError) => {
+          setActionError(mutationError.message);
+        },
+      },
+    );
+  };
+
+  const handleDeleteWorkspace = (workspace: Workspace) => {
+    const confirmed = window.confirm(`Delete workspace \"${workspace.name}\"?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActionError(null);
+    deleteWorkspace(workspace.id, {
+      onError: (mutationError) => {
+        setActionError(mutationError.message);
+      },
+    });
+  };
+
+  const queryErrorMessage = error instanceof Error ? error.message : null;
 
   return (
     <div className="flex min-h-screen flex-col bg-[#EBF1FB] transition-colors dark:bg-slate-950">
@@ -182,12 +212,36 @@ export default function WorkspaceDashboard() {
         </section>
 
         <section className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {workspaces.map((workspace) => {
-            const Icon = workspace.icon;
+          {queryErrorMessage && (
+            <article className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+              {queryErrorMessage}
+            </article>
+          )}
+
+          {actionError && (
+            <article className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+              {actionError}
+            </article>
+          )}
+
+          {isLoading && (
+            <article className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+              Loading workspaces...
+            </article>
+          )}
+
+          {!isLoading && workspaces.length === 0 && (
+            <article className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+              No workspaces found. Create your first workspace to get started.
+            </article>
+          )}
+
+          {workspaces.map((workspace, index) => {
+            const Icon = workspaceIcons[index % workspaceIcons.length];
 
             return (
               <article
-                key={workspace.name}
+                key={workspace.id}
                 className="min-h-65 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:shadow-none lg:p-6"
               >
                 <div className="flex items-center justify-between">
@@ -195,7 +249,7 @@ export default function WorkspaceDashboard() {
                     <Icon className="h-4.5 w-4.5" />
                   </span>
                   <span
-                    className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide ${roleStyles[workspace.role]}`}
+                    className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide ${getRoleStyle(workspace.role)}`}
                   >
                     {workspace.role}
                   </span>
@@ -205,22 +259,43 @@ export default function WorkspaceDashboard() {
                   {workspace.name}
                 </h2>
                 <p className="mt-2 min-h-16 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-                  {workspace.description}
+                  Workspace slug: {workspace.slug}
                 </p>
 
                 <div className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-800">
                   <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
                     <span className="inline-flex items-center gap-1.5">
                       <Users className="h-3.5 w-3.5" />
-                      {workspace.members} members
+                      {workspace.memberCount} members
                     </span>
                     <Link
-                      href={workspace.href}
+                      href="#"
                       className="inline-flex items-center gap-1.5 font-semibold text-slate-700 transition-colors hover:text-blue-700 dark:text-slate-200 dark:hover:text-blue-400"
                     >
                       Enter
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={isMutating}
+                      onClick={() => handleRenameWorkspace(workspace)}
+                    >
+                      Rename
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      disabled={isMutating}
+                      onClick={() => handleDeleteWorkspace(workspace)}
+                    >
+                      Delete
+                    </Button>
                   </div>
                 </div>
               </article>
@@ -241,9 +316,11 @@ export default function WorkspaceDashboard() {
               type="button"
               variant="auth"
               size="auth"
+              disabled={isMutating}
+              onClick={handleCreateWorkspace}
               className="mt-6 h-11 w-full bg-blue-600 text-base font-semibold text-white hover:bg-blue-700"
             >
-              Create or Join
+              {isCreating ? "Creating..." : "Create Workspace"}
             </Button>
           </article>
         </section>

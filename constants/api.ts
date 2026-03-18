@@ -8,4 +8,11 @@ export const SYNAPSE_API_ENDPOINTS = {
     REGISTER: '/auth/register',
     PROFILE: '/auth/profile',
   },
+  WORKSPACES: {
+    LIST: '/workspaces',
+    CREATE: '/workspaces',
+    DETAIL: (id: string) => `/workspaces/${id}`,
+    UPDATE: (id: string) => `/workspaces/${id}`,
+    DELETE: (id: string) => `/workspaces/${id}`,
+  },
 } as const;

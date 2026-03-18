@@ -6,28 +6,29 @@ import { useEffect, useState } from "react";
 const THEME_STORAGE_KEY = "synapse-theme";
 
 export default function ThemeToggleButton() {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
 
-  useEffect(() => {
-    const root = document.documentElement;
     const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
 
     if (storedTheme === "dark") {
-      root.classList.add("dark");
-      setIsDark(true);
-      return;
+      return true;
     }
 
     if (storedTheme === "light") {
-      root.classList.remove("dark");
-      setIsDark(false);
-      return;
+      return false;
     }
 
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    root.classList.toggle("dark", prefersDark);
-    setIsDark(prefersDark);
-  }, []);
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("dark", isDark);
+    window.localStorage.setItem(THEME_STORAGE_KEY, isDark ? "dark" : "light");
+  }, [isDark]);
 
   const handleToggleTheme = () => {
     const root = document.documentElement;
