@@ -50,7 +50,7 @@ const data = {
   ],
   navMain: [
     {
-      title: "Playground",
+      title: "Teams",
       url: "#",
       icon: (
         <TerminalSquareIcon
@@ -73,7 +73,7 @@ const data = {
       ],
     },
     {
-      title: "Models",
+      title: "Tasks",
       url: "#",
       icon: (
         <BotIcon
@@ -149,7 +149,7 @@ const data = {
   ],
   projects: [
     {
-      name: "Design Engineering",
+      name: "general",
       url: "#",
       icon: (
         <FrameIcon
@@ -157,18 +157,18 @@ const data = {
       ),
     },
     {
-      name: "Sales & Marketing",
+      name: "interns",
       url: "#",
       icon: (
-        <PieChartIcon
+        <FrameIcon
         />
       ),
     },
     {
-      name: "Travel",
+      name: "migrations",
       url: "#",
       icon: (
-        <MapIcon
+        <FrameIcon
         />
       ),
     },
