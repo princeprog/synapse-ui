@@ -1,14 +1,15 @@
 "use client"
 
+import Link from "next/link"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
   SidebarGroup,
+  SidebarGroupAction,
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuAction,
@@ -16,70 +17,115 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { MoreHorizontalIcon, FolderIcon, ArrowRightIcon, Trash2Icon } from "lucide-react"
+import {
+  HashIcon,
+  MoreHorizontalIcon,
+  PencilLineIcon,
+  PlusIcon,
+  Trash2Icon,
+} from "lucide-react"
 
 export function NavProjects({
-  projects,
+  channels,
+  onCreateChannel,
+  onRenameChannel,
+  onDeleteChannel,
+  isCreating,
+  isMutating,
+  isLoading,
+  errorMessage,
+  canCreate,
 }: {
-  projects: {
+  channels: {
+    id: string
     name: string
     url: string
-    icon: React.ReactNode
   }[]
+  onCreateChannel: () => void
+  onRenameChannel: (channel: { id: string; name: string }) => void
+  onDeleteChannel: (channel: { id: string; name: string }) => void
+  isCreating?: boolean
+  isMutating?: boolean
+  isLoading?: boolean
+  errorMessage?: string | null
+  canCreate?: boolean
 }) {
   const { isMobile } = useSidebar()
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Channels</SidebarGroupLabel>
+      <SidebarGroupAction
+        aria-label="Create channel"
+        title="Create channel"
+        onClick={onCreateChannel}
+        disabled={!canCreate || isCreating}
+      >
+        <PlusIcon className="size-3.5" />
+        <span className="sr-only">Create channel</span>
+      </SidebarGroupAction>
+
       <SidebarMenu>
-        {projects.map((item) => (
-          <SidebarMenuItem key={item.name}>
+        {isLoading && (
+          <SidebarMenuItem>
+            <SidebarMenuButton disabled>
+              <span>Loading channels...</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
+
+        {!isLoading && errorMessage && (
+          <SidebarMenuItem>
+            <SidebarMenuButton disabled>
+              <span>{errorMessage}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
+
+        {!isLoading && !errorMessage && channels.length === 0 && (
+          <SidebarMenuItem>
+            <SidebarMenuButton disabled>
+              <span>No channels yet</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
+
+        {channels.map((channel) => (
+          <SidebarMenuItem key={channel.id}>
             <SidebarMenuButton asChild>
-              <a href={item.url}>
-                {item.icon}
-                <span>{item.name}</span>
-              </a>
+              <Link href={channel.url}>
+                <HashIcon className="text-sidebar-foreground/70" />
+                <span>{channel.name}</span>
+              </Link>
             </SidebarMenuButton>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuAction
                   showOnHover
                   className="aria-expanded:bg-muted"
+                  disabled={isMutating}
                 >
-                  <MoreHorizontalIcon
-                  />
-                  <span className="sr-only">More</span>
+                  <MoreHorizontalIcon />
+                  <span className="sr-only">Channel actions</span>
                 </SidebarMenuAction>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-48 rounded-lg"
+                className="w-44 rounded-lg"
                 side={isMobile ? "bottom" : "right"}
                 align={isMobile ? "end" : "start"}
               >
-                <DropdownMenuItem>
-                  <FolderIcon className="text-muted-foreground" />
-                  <span>View Project</span>
+                <DropdownMenuItem onClick={() => onRenameChannel(channel)}>
+                  <PencilLineIcon className="text-muted-foreground" />
+                  <span>Rename</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <ArrowRightIcon className="text-muted-foreground" />
-                  <span>Share Project</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Trash2Icon className="text-muted-foreground" />
-                  <span>Delete Project</span>
+                <DropdownMenuItem onClick={() => onDeleteChannel(channel)}>
+                  <Trash2Icon className="text-destructive" />
+                  <span>Delete</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
         ))}
-        <SidebarMenuItem>
-          <SidebarMenuButton className="text-sidebar-foreground/70">
-            <MoreHorizontalIcon className="text-sidebar-foreground/70" />
-            <span>More</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
       </SidebarMenu>
     </SidebarGroup>
   )
