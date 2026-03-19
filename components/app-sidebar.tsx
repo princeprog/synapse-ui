@@ -1,11 +1,14 @@
 "use client"
 
-import * as React from "react"
+import type { ComponentProps } from "react"
+import Link from "next/link"
 
+import { ChannelCreateModal } from "@/components/workspace/modal/channel-create-modal"
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
+import { useWorkspaceSidebarChannels } from "@/hooks/useWorkspaceSidebarChannels"
 import {
   Sidebar,
   SidebarContent,
@@ -13,9 +16,18 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { GalleryVerticalEndIcon, AudioLinesIcon, TerminalIcon, TerminalSquareIcon, BotIcon, BookOpenIcon, Settings2Icon, FrameIcon, PieChartIcon, MapIcon } from "lucide-react"
+import {
+  AudioLinesIcon,
+  BookOpenIcon,
+  GalleryVerticalEndIcon,
+  LogOutIcon,
+  TerminalIcon,
+  TerminalSquareIcon,
+} from "lucide-react"
 
-// This is sample data.
+const LEAVE_WORKSPACE_LINK_CLASSNAME =
+  "inline-flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-sm font-medium text-red-500 transition-colors hover:bg-sidebar-accent hover:text-red-600"
+
 const data = {
   user: {
     name: "shadcn",
@@ -25,82 +37,26 @@ const data = {
   teams: [
     {
       name: "Acme Inc",
-      logo: (
-        <GalleryVerticalEndIcon
-        />
-      ),
+      logo: <GalleryVerticalEndIcon />,
       plan: "Enterprise",
     },
     {
       name: "Acme Corp.",
-      logo: (
-        <AudioLinesIcon
-        />
-      ),
+      logo: <AudioLinesIcon />,
       plan: "Startup",
     },
     {
       name: "Evil Corp.",
-      logo: (
-        <TerminalIcon
-        />
-      ),
+      logo: <TerminalIcon />,
       plan: "Free",
     },
   ],
   navMain: [
     {
-      title: "Teams",
+      title: "Documents",
       url: "#",
-      icon: (
-        <TerminalSquareIcon
-        />
-      ),
+      icon: <BookOpenIcon />,
       isActive: true,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Tasks",
-      url: "#",
-      icon: (
-        <BotIcon
-        />
-      ),
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: (
-        <BookOpenIcon
-        />
-      ),
       items: [
         {
           title: "Introduction",
@@ -114,81 +70,81 @@ const data = {
           title: "Tutorials",
           url: "#",
         },
-        {
-          title: "Changelog",
-          url: "#",
-        },
       ],
     },
     {
-      title: "Settings",
+      title: "Team",
       url: "#",
-      icon: (
-        <Settings2Icon
-        />
-      ),
+      icon: <TerminalSquareIcon />,
       items: [
         {
-          title: "General",
+          title: "Members",
           url: "#",
         },
         {
-          title: "Team",
+          title: "Roles",
           url: "#",
         },
         {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
+          title: "Invites",
           url: "#",
         },
       ],
-    },
-  ],
-  projects: [
-    {
-      name: "general",
-      url: "#",
-      icon: (
-        <FrameIcon
-        />
-      ),
-    },
-    {
-      name: "interns",
-      url: "#",
-      icon: (
-        <FrameIcon
-        />
-      ),
-    },
-    {
-      name: "migrations",
-      url: "#",
-      icon: (
-        <FrameIcon
-        />
-      ),
     },
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+function LeaveWorkspaceAction() {
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
-      </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
-      </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={data.user} />
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
+    <Link href="/workspace" className={LEAVE_WORKSPACE_LINK_CLASSNAME}>
+      <LogOutIcon className="size-3.5" />
+      Leave Workspace
+    </Link>
+  )
+}
+
+export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
+  const {
+    channelItems,
+    isLoading,
+    isCreating,
+    isMutating,
+    canCreate,
+    channelErrorMessage,
+    openCreateModal,
+    renameChannel,
+    deleteChannel,
+    createModalState,
+  } = useWorkspaceSidebarChannels()
+
+  return (
+    <>
+      <Sidebar collapsible="icon" {...props}>
+        <SidebarHeader>
+          <TeamSwitcher teams={data.teams} />
+        </SidebarHeader>
+        <SidebarContent>
+          <NavMain items={data.navMain} />
+          <NavProjects
+            channels={channelItems}
+            onCreateChannel={openCreateModal}
+            onRenameChannel={renameChannel}
+            onDeleteChannel={deleteChannel}
+            isCreating={isCreating}
+            isMutating={isMutating}
+            isLoading={isLoading}
+            errorMessage={channelErrorMessage}
+            canCreate={canCreate}
+          />
+        </SidebarContent>
+        <SidebarFooter>
+          <NavUser user={data.user} />
+          <LeaveWorkspaceAction />
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+
+      <ChannelCreateModal {...createModalState} />
+    </>
   )
 }

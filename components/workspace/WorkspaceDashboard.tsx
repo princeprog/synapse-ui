@@ -288,10 +288,6 @@ export default function WorkspaceDashboard() {
                 <h2 className="mt-5 text-2xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">
                   {workspace.name}
                 </h2>
-                <p className="mt-2 min-h-16 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-                  Workspace slug: {workspace.slug}
-                </p>
-
                 <div className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-800">
                   <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
                     <span className="inline-flex items-center gap-1.5">
@@ -299,7 +295,7 @@ export default function WorkspaceDashboard() {
                       {workspace.memberCount} members
                     </span>
                     <Link
-                      href="#"
+                      href={`/workspace/${workspace.slug}`}
                       className="inline-flex items-center gap-1.5 font-semibold text-slate-700 transition-colors hover:text-blue-700 dark:text-slate-200 dark:hover:text-blue-400"
                     >
                       Enter
