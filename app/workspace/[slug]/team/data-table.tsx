@@ -10,6 +10,7 @@ import {
     getSortedRowModel,
     ColumnFiltersState,
     getFilteredRowModel,
+    VisibilityState,
 } from "@tanstack/react-table"
 import { Input } from "@/components/ui/input"
 import {
@@ -21,20 +22,38 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
+    isLoading?: boolean
+    filterColumnId?: string
+    filterPlaceholder?: string
 }
 
 export function DataTable<TData, TValue>({
     columns,
     data,
+    isLoading = false,
+    filterColumnId = "email",
+    filterPlaceholder = "Filter by email...",
 }: DataTableProps<TData, TValue>) {
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
         []
     )
     const [sorting, setSorting] = React.useState<SortingState>([])
+
+    const [columnVisibility, setColumnVisibility] =
+        React.useState<VisibilityState>({})
+
+    const [rowSelection, setRowSelection] = React.useState({})
+
     const table = useReactTable({
         data,
         columns,
@@ -44,25 +63,57 @@ export function DataTable<TData, TValue>({
         getSortedRowModel: getSortedRowModel(),
         onColumnFiltersChange: setColumnFilters,
         getFilteredRowModel: getFilteredRowModel(),
+        onColumnVisibilityChange: setColumnVisibility,
+        onRowSelectionChange: setRowSelection,
         state: {
             sorting,
             columnFilters,
+            columnVisibility,
+            rowSelection,
         },
     })
 
 
 
     return (
-        <div>
+        <div className="w-full">
             <div className="flex items-center py-4">
                 <Input
-                    placeholder="Filter emails..."
-                    value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
+                    placeholder={filterPlaceholder}
+                    value={(table.getColumn(filterColumnId)?.getFilterValue() as string) ?? ""}
                     onChange={(event) =>
-                        table.getColumn("email")?.setFilterValue(event.target.value)
+                        table.getColumn(filterColumnId)?.setFilterValue(event.target.value)
                     }
                     className="max-w-sm"
                 />
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="ml-auto">
+                            Columns
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        {table
+                            .getAllColumns()
+                            .filter(
+                                (column) => column.getCanHide()
+                            )
+                            .map((column) => {
+                                return (
+                                    <DropdownMenuCheckboxItem
+                                        key={column.id}
+                                        className="capitalize"
+                                        checked={column.getIsVisible()}
+                                        onCheckedChange={(value) =>
+                                            column.toggleVisibility(!!value)
+                                        }
+                                    >
+                                        {column.id}
+                                    </DropdownMenuCheckboxItem>
+                                )
+                            })}
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
             <div className="overflow-hidden rounded-md border">
                 <Table>
@@ -85,7 +136,13 @@ export function DataTable<TData, TValue>({
                         ))}
                     </TableHeader>
                     <TableBody>
-                        {table.getRowModel().rows?.length ? (
+                        {isLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={columns.length} className="h-24 text-center">
+                                    Loading members...
+                                </TableCell>
+                            </TableRow>
+                        ) : table.getRowModel().rows?.length ? (
                             table.getRowModel().rows.map((row) => (
                                 <TableRow
                                     key={row.id}
@@ -101,7 +158,7 @@ export function DataTable<TData, TValue>({
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    No results.
+                                    No members found.
                                 </TableCell>
                             </TableRow>
                         )}

@@ -14,6 +14,11 @@ export const SYNAPSE_API_ENDPOINTS = {
     DETAIL: (id: string) => `/workspaces/${id}`,
     UPDATE: (id: string) => `/workspaces/${id}`,
     DELETE: (id: string) => `/workspaces/${id}`,
+    MEMBERS: (workspaceSlug: string) => `/workspaces/${workspaceSlug}/members`,
+    UPDATE_MEMBER_ROLE: (workspaceSlug: string, memberId: string) =>
+      `/workspaces/${workspaceSlug}/members/${memberId}`,
+    REMOVE_MEMBER: (workspaceSlug: string, memberId: string) =>
+      `/workspaces/${workspaceSlug}/members/${memberId}`,
   },
   CHANNELS: {
     LIST: (workspaceSlug: string) => `/workspaces/${workspaceSlug}/channels`,
