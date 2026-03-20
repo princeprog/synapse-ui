@@ -23,6 +23,7 @@ import {
   LogOutIcon,
   TerminalIcon,
   TerminalSquareIcon,
+  ClipboardList,
 } from "lucide-react"
 
 const LEAVE_WORKSPACE_LINK_CLASSNAME =
@@ -56,6 +57,26 @@ const data = {
       title: "Documents",
       url: "#",
       icon: <BookOpenIcon />,
+      isActive: true,
+      items: [
+        {
+          title: "Introduction",
+          url: "#",
+        },
+        {
+          title: "Get Started",
+          url: "#",
+        },
+        {
+          title: "Tutorials",
+          url: "#",
+        },
+      ],
+    },
+    {
+      title: "Task Management",
+      url: "#",
+      icon: <ClipboardList />,
       isActive: true,
       items: [
         {
