@@ -21,9 +21,14 @@ import {
   BookOpenIcon,
   GalleryVerticalEndIcon,
   LogOutIcon,
+  
   TerminalIcon,
   TerminalSquareIcon,
   ClipboardList,
+  Gauge,
+  HeartHandshake,
+  Users,
+  Inbox,
 } from "lucide-react"
 
 const LEAVE_WORKSPACE_LINK_CLASSNAME =
@@ -54,63 +59,24 @@ const data = {
   ],
   navMain: [
     {
-      title: "Documents",
+      title: "Welcome",
       url: "#",
-      icon: <BookOpenIcon />,
-      isActive: true,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-      ],
+      icon: <HeartHandshake />,
     },
     {
-      title: "Task Management",
+      title: "Documentation",
       url: "#",
-      icon: <ClipboardList />,
-      isActive: true,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-      ],
+      icon: <BookOpenIcon />,
     },
     {
       title: "Team",
       url: "#",
-      icon: <TerminalSquareIcon />,
-      items: [
-        {
-          title: "Members",
-          url: "#",
-        },
-        {
-          title: "Roles",
-          url: "#",
-        },
-        {
-          title: "Invites",
-          url: "#",
-        },
-      ],
+      icon: <Users />,
+    },
+    {
+      title: "Inbox",
+      url: "#",
+      icon: <Inbox />,
     },
   ],
 }
