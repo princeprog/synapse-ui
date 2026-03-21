@@ -13,6 +13,10 @@ import {
   WorkspaceInvitation,
   WorkspaceMember,
 } from '@/lib/types/workspace-member.types';
+import {
+  InvitationActionResponse,
+  WorkspaceNotification,
+} from '@/lib/types/notification.types';
 import { apiService } from './api.service';
 
 class WorkspacesService {
@@ -146,6 +150,53 @@ class WorkspacesService {
         workspaceSlug,
         invitationId,
       ),
+    );
+  }
+
+  async findMyNotifications(): Promise<WorkspaceNotification[]> {
+    return apiService.request<WorkspaceNotification[]>(
+      'GET',
+      SYNAPSE_API_ENDPOINTS.WORKSPACES.MY_NOTIFICATIONS,
+    );
+  }
+
+  async findMyInvitations(): Promise<WorkspaceInvitation[]> {
+    const invitations = await apiService.request<
+      Array<{
+        id: string;
+        email: string;
+        role: string;
+        status: string;
+        expiresAt: string;
+        acceptedAt: string | null;
+      }>
+    >('GET', SYNAPSE_API_ENDPOINTS.WORKSPACES.MY_INVITATIONS);
+
+    return invitations.map((invitation) => ({
+      id: invitation.id,
+      email: invitation.email,
+      role: invitation.role,
+      status: invitation.status,
+      expiresAt: invitation.expiresAt,
+      acceptedAt: invitation.acceptedAt,
+    }));
+  }
+
+  async acceptInvitation(
+    invitationId: string,
+  ): Promise<InvitationActionResponse> {
+    return apiService.request<InvitationActionResponse>(
+      'POST',
+      SYNAPSE_API_ENDPOINTS.WORKSPACES.ACCEPT_INVITATION(invitationId),
+    );
+  }
+
+  async declineInvitation(
+    invitationId: string,
+  ): Promise<InvitationActionResponse> {
+    return apiService.request<InvitationActionResponse>(
+      'POST',
+      SYNAPSE_API_ENDPOINTS.WORKSPACES.DECLINE_INVITATION(invitationId),
     );
   }
 }

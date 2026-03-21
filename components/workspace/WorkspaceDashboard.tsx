@@ -21,9 +21,14 @@ import {
 
 import { Button } from "@/components/common/button";
 import { useLogoutMutation } from "@/hooks/mutation/auth/useLogoutMutation";
+import { useAcceptWorkspaceInvitationMutation } from "@/hooks/mutation/workspaces/useAcceptWorkspaceInvitationMutation";
 import { useCreateWorkspaceMutation } from "@/hooks/mutation/workspaces/useCreateWorkspaceMutation";
+import { useDeclineWorkspaceInvitationMutation } from "@/hooks/mutation/workspaces/useDeclineWorkspaceInvitationMutation";
 import { useDeleteWorkspaceMutation } from "@/hooks/mutation/workspaces/useDeleteWorkspaceMutation";
 import { useUpdateWorkspaceMutation } from "@/hooks/mutation/workspaces/useUpdateWorkspaceMutation";
+import { useWorkspaceNotificationsQuery } from "@/hooks/queries/workspaces/useWorkspaceNotificationsQuery";
+import { useWorkspaceNotificationsSocket } from "@/hooks/workspace/useWorkspaceNotificationsSocket";
+import { WorkspaceNotification } from "@/lib/types/notification.types";
 import { useWorkspacesQuery } from "@/hooks/queries/workspaces/useWorkspacesQuery";
 import { Workspace } from "@/lib/types/workspace.types";
 import ThemeToggleButton from "@/components/workspace/ThemeToggleButton";
@@ -72,8 +77,19 @@ const getRoleStyle = (role: string): string => {
 
 export default function WorkspaceDashboard() {
   const router = useRouter();
+  useWorkspaceNotificationsSocket();
+
   const { mutate: logout, isPending: isLoggingOut } = useLogoutMutation();
   const { data: workspaces = [], isLoading, error } = useWorkspacesQuery();
+  const {
+    data: notifications = [],
+    isLoading: isNotificationsLoading,
+    error: notificationsError,
+  } = useWorkspaceNotificationsQuery();
+  const { mutate: acceptInvitation, isPending: isAcceptingInvitation } =
+    useAcceptWorkspaceInvitationMutation();
+  const { mutate: declineInvitation, isPending: isDecliningInvitation } =
+    useDeclineWorkspaceInvitationMutation();
   const { mutate: createWorkspace, isPending: isCreating } = useCreateWorkspaceMutation();
   const { mutate: updateWorkspace, isPending: isUpdating } = useUpdateWorkspaceMutation();
   const { mutate: deleteWorkspace, isPending: isDeleting } = useDeleteWorkspaceMutation();
@@ -82,8 +98,16 @@ export default function WorkspaceDashboard() {
   const [workspaceNameInput, setWorkspaceNameInput] = useState("");
   const [workspaceSlugInput, setWorkspaceSlugInput] = useState("");
   const [createModalError, setCreateModalError] = useState<string | null>(null);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notificationActionError, setNotificationActionError] = useState<string | null>(null);
 
   const isMutating = isCreating || isUpdating || isDeleting;
+  const isNotificationMutating = isAcceptingInvitation || isDecliningInvitation;
+  const pendingInviteNotifications = notifications.filter(
+    (notification: WorkspaceNotification) =>
+      notification.type === "workspace.invite.created" &&
+      notification.invitation?.status?.toLowerCase() === "pending",
+  );
 
   const handleLogout = () => {
     logout(undefined, {
@@ -174,6 +198,31 @@ export default function WorkspaceDashboard() {
   };
 
   const queryErrorMessage = error instanceof Error ? error.message : null;
+  const notificationsErrorMessage =
+    notificationsError instanceof Error ? notificationsError.message : null;
+
+  const handleAcceptInvitation = (invitationId: string) => {
+    setNotificationActionError(null);
+    acceptInvitation(invitationId, {
+      onSuccess: (response) => {
+        if (response.workspaceSlug) {
+          router.refresh();
+        }
+      },
+      onError: (mutationError) => {
+        setNotificationActionError(mutationError.message);
+      },
+    });
+  };
+
+  const handleDeclineInvitation = (invitationId: string) => {
+    setNotificationActionError(null);
+    declineInvitation(invitationId, {
+      onError: (mutationError) => {
+        setNotificationActionError(mutationError.message);
+      },
+    });
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-[#EBF1FB] transition-colors dark:bg-slate-950">
@@ -194,13 +243,110 @@ export default function WorkspaceDashboard() {
           </div>
 
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent text-slate-500 transition-colors hover:border-slate-200 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-100"
-              aria-label="Notifications"
-            >
-              <Bell className="h-4 w-4" />
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                className="relative inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent text-slate-500 transition-colors hover:border-slate-200 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                aria-label="Notifications"
+                onClick={() => setIsNotificationsOpen((prev) => !prev)}
+              >
+                <Bell className="h-4 w-4" />
+                {pendingInviteNotifications.length > 0 && (
+                  <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+                    {pendingInviteNotifications.length}
+                  </span>
+                )}
+              </button>
+
+              {isNotificationsOpen && (
+                <div className="absolute right-0 z-30 mt-2 w-[26rem] rounded-xl border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                  <div className="mb-2 flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
+                    <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      Notifications
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setIsNotificationsOpen(false)}
+                      className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  {notificationsErrorMessage && (
+                    <p className="mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+                      {notificationsErrorMessage}
+                    </p>
+                  )}
+
+                  {notificationActionError && (
+                    <p className="mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+                      {notificationActionError}
+                    </p>
+                  )}
+
+                  {isNotificationsLoading ? (
+                    <p className="px-1 py-3 text-xs text-slate-500 dark:text-slate-400">
+                      Loading notifications...
+                    </p>
+                  ) : notifications.length === 0 ? (
+                    <p className="px-1 py-3 text-xs text-slate-500 dark:text-slate-400">
+                      You are all caught up.
+                    </p>
+                  ) : (
+                    <ul className="max-h-90 space-y-2 overflow-y-auto pr-1">
+                      {notifications.map((notification) => (
+                        <li
+                          key={notification.id}
+                          className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950"
+                        >
+                          <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                            {notification.workspace?.name ?? "Workspace"}
+                          </p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                            {notification.message}
+                          </p>
+                          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                            {new Date(notification.createdAt).toLocaleString()}
+                          </p>
+
+                          {notification.type === "workspace.invite.created" &&
+                            notification.invitation?.status?.toLowerCase() === "pending" &&
+                            notification.invitation.id && (
+                              <div className="mt-3 flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="auth"
+                                  className="h-8 px-3"
+                                  disabled={isNotificationMutating}
+                                  onClick={() =>
+                                    handleAcceptInvitation(notification.invitation!.id)
+                                  }
+                                >
+                                  Accept
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-3"
+                                  disabled={isNotificationMutating}
+                                  onClick={() =>
+                                    handleDeclineInvitation(notification.invitation!.id)
+                                  }
+                                >
+                                  Decline
+                                </Button>
+                              </div>
+                            )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
             <ThemeToggleButton />
             <button
               type="button"
