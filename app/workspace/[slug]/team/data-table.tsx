@@ -35,6 +35,8 @@ interface DataTableProps<TData, TValue> {
     isLoading?: boolean
     filterColumnId?: string
     filterPlaceholder?: string
+    loadingMessage?: string
+    emptyMessage?: string
 }
 
 export function DataTable<TData, TValue>({
@@ -43,6 +45,8 @@ export function DataTable<TData, TValue>({
     isLoading = false,
     filterColumnId = "email",
     filterPlaceholder = "Filter by email...",
+    loadingMessage = "Loading members...",
+    emptyMessage = "No members found.",
 }: DataTableProps<TData, TValue>) {
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
         []
@@ -139,7 +143,7 @@ export function DataTable<TData, TValue>({
                         {isLoading ? (
                             <TableRow>
                                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    Loading members...
+                                    {loadingMessage}
                                 </TableCell>
                             </TableRow>
                         ) : table.getRowModel().rows?.length ? (
@@ -158,7 +162,7 @@ export function DataTable<TData, TValue>({
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    No members found.
+                                    {emptyMessage}
                                 </TableCell>
                             </TableRow>
                         )}

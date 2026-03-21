@@ -13,3 +13,21 @@ export interface UpdateWorkspaceMemberRoleRequest {
 export interface DeleteWorkspaceMemberResponse {
   message: string;
 }
+
+export interface InviteWorkspaceMemberRequest {
+  email: string;
+  role: 'Admin' | 'Member';
+}
+
+export interface WorkspaceInvitation {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+}
+
+export interface DeleteWorkspaceInvitationResponse {
+  message: string;
+}

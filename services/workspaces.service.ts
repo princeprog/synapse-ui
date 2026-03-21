@@ -6,8 +6,11 @@ import {
   Workspace,
 } from '@/lib/types/workspace.types';
 import {
+  DeleteWorkspaceInvitationResponse,
   DeleteWorkspaceMemberResponse,
+  InviteWorkspaceMemberRequest,
   UpdateWorkspaceMemberRoleRequest,
+  WorkspaceInvitation,
   WorkspaceMember,
 } from '@/lib/types/workspace-member.types';
 import { apiService } from './api.service';
@@ -97,6 +100,52 @@ class WorkspacesService {
     return apiService.request<DeleteWorkspaceMemberResponse>(
       'DELETE',
       SYNAPSE_API_ENDPOINTS.WORKSPACES.REMOVE_MEMBER(workspaceSlug, memberId),
+    );
+  }
+
+  async inviteMember(
+    workspaceSlug: string,
+    payload: InviteWorkspaceMemberRequest,
+  ): Promise<void> {
+    await apiService.request<void, InviteWorkspaceMemberRequest>(
+      'POST',
+      SYNAPSE_API_ENDPOINTS.WORKSPACES.INVITE_MEMBER(workspaceSlug),
+      payload,
+    );
+  }
+
+  async findPendingInvitations(workspaceSlug: string): Promise<WorkspaceInvitation[]> {
+    const invitations = await apiService.request<
+      Array<{
+        id: string;
+        email: string;
+        role: string;
+        status: string;
+        expires_at: string;
+        accepted_at: string | null;
+      }>
+    >('GET', SYNAPSE_API_ENDPOINTS.WORKSPACES.INVITATIONS(workspaceSlug));
+
+    return invitations.map((invitation) => ({
+      id: invitation.id,
+      email: invitation.email,
+      role: invitation.role,
+      status: invitation.status,
+      expiresAt: invitation.expires_at,
+      acceptedAt: invitation.accepted_at,
+    }));
+  }
+
+  async revokeInvitation(
+    workspaceSlug: string,
+    invitationId: string,
+  ): Promise<DeleteWorkspaceInvitationResponse> {
+    return apiService.request<DeleteWorkspaceInvitationResponse>(
+      'DELETE',
+      SYNAPSE_API_ENDPOINTS.WORKSPACES.INVITATION_DETAIL(
+        workspaceSlug,
+        invitationId,
+      ),
     );
   }
 }

@@ -19,6 +19,11 @@ export const SYNAPSE_API_ENDPOINTS = {
       `/workspaces/${workspaceSlug}/members/${memberId}`,
     REMOVE_MEMBER: (workspaceSlug: string, memberId: string) =>
       `/workspaces/${workspaceSlug}/members/${memberId}`,
+    INVITE_MEMBER: (workspaceSlug: string) => `/workspaces/${workspaceSlug}/invitations`,
+    INVITATIONS: (workspaceSlug: string) =>
+      `/workspaces/${workspaceSlug}/invitations`,
+    INVITATION_DETAIL: (workspaceSlug: string, invitationId: string) =>
+      `/workspaces/${workspaceSlug}/invitations/${invitationId}`,
   },
   CHANNELS: {
     LIST: (workspaceSlug: string) => `/workspaces/${workspaceSlug}/channels`,

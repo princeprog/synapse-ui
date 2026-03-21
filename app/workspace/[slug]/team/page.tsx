@@ -4,9 +4,12 @@ import { useMemo, useState } from "react"
 import { useParams } from "next/navigation"
 import { createColumns, TeamMember } from "./columns"
 import { DataTable } from "./data-table"
+import { createPendingInviteColumns, PendingInvite } from "./pending-invites-columns"
 import { useWorkspaceMembersQuery } from "@/hooks/queries/workspaces/useWorkspaceMembersQuery"
+import { usePendingInvitationsQuery } from "@/hooks/queries/workspaces/usePendingInvitationsQuery"
 import { useUpdateWorkspaceMemberRoleMutation } from "@/hooks/mutation/workspaces/useUpdateWorkspaceMemberRoleMutation"
 import { useRemoveWorkspaceMemberMutation } from "@/hooks/mutation/workspaces/useRemoveWorkspaceMemberMutation"
+import { useRevokeWorkspaceInvitationMutation } from "@/hooks/mutation/workspaces/useRevokeWorkspaceInvitationMutation"
 
 function getNextRole(role: string): "Admin" | "Member" {
   return role.toLowerCase() === "admin" ? "Member" : "Admin"
@@ -27,8 +30,14 @@ export default function TeamPage() {
     typeof slugParam === "string" ? slugParam : (slugParam?.[0] ?? "")
 
   const { data = [], isLoading, error } = useWorkspaceMembersQuery(workspaceSlug)
+  const {
+    data: pendingInvitations = [],
+    isLoading: isLoadingInvitations,
+    error: pendingInvitationsError,
+  } = usePendingInvitationsQuery(workspaceSlug)
   const { mutate: updateMemberRole, isPending: isUpdatingRole } = useUpdateWorkspaceMemberRoleMutation()
   const { mutate: removeMember, isPending: isRemovingMember } = useRemoveWorkspaceMemberMutation()
+  const { mutate: revokeInvitation, isPending: isRevokingInvitation } = useRevokeWorkspaceInvitationMutation()
 
   const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(null)
 
@@ -42,6 +51,18 @@ export default function TeamPage() {
         joinedAt: member.joinedAt,
       })),
     [data],
+  )
+
+  const pendingInviteData = useMemo<PendingInvite[]>(
+    () =>
+      pendingInvitations.map((invitation) => ({
+        id: invitation.id,
+        email: invitation.email,
+        role: invitation.role,
+        status: invitation.status,
+        expiresAt: invitation.expiresAt,
+      })),
+    [pendingInvitations],
   )
 
   const handleToggleRole = (member: TeamMember) => {
@@ -103,8 +124,39 @@ export default function TeamPage() {
     onRemove: handleRemoveMember,
   })
 
+  const handleRevokeInvitation = (invitation: PendingInvite) => {
+    if (!workspaceSlug || isRevokingInvitation) {
+      return
+    }
+
+    const confirmed = window.confirm(`Revoke invitation for ${invitation.email}?`)
+
+    if (!confirmed) {
+      return
+    }
+
+    setActionErrorMessage(null)
+    revokeInvitation(
+      {
+        workspaceSlug,
+        invitationId: invitation.id,
+      },
+      {
+        onError: (mutationError) => {
+          setActionErrorMessage(mutationError.message)
+        },
+      },
+    )
+  }
+
+  const pendingInviteColumns = createPendingInviteColumns({
+    onRevoke: handleRevokeInvitation,
+  })
+
   const queryErrorMessage = error instanceof Error ? error.message : null
-  const errorMessage = actionErrorMessage ?? queryErrorMessage
+  const pendingQueryErrorMessage =
+    pendingInvitationsError instanceof Error ? pendingInvitationsError.message : null
+  const errorMessage = actionErrorMessage ?? queryErrorMessage ?? pendingQueryErrorMessage
 
   return (
     <div className="container mx-auto px-4">
@@ -120,7 +172,25 @@ export default function TeamPage() {
         isLoading={isLoading}
         filterColumnId="email"
         filterPlaceholder="Filter members by email..."
+        loadingMessage="Loading members..."
+        emptyMessage="No members found."
       />
+
+      <div className="mt-10">
+        <h3 className="text-xl font-semibold tracking-tight">Pending Invitations</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Manage invitations that have not been accepted yet.
+        </p>
+        <DataTable
+          columns={pendingInviteColumns}
+          data={pendingInviteData}
+          isLoading={isLoadingInvitations}
+          filterColumnId="email"
+          filterPlaceholder="Filter pending invites by email..."
+          loadingMessage="Loading pending invitations..."
+          emptyMessage="No pending invitations."
+        />
+      </div>
     </div>
   )
 }
