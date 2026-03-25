@@ -70,7 +70,7 @@ const data = {
     },
     {
       title: "Team",
-      url: "#",
+      url: "/workspace/synapse-workspace/team",
       icon: <Users />,
     },
     {
