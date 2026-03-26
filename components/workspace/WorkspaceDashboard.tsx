@@ -287,7 +287,7 @@ export default function WorkspaceDashboard() {
 
                   {isNotificationsLoading ? (
                     <p className="px-1 py-3 text-xs text-slate-500 dark:text-slate-400">
-                      Loading notifications...
+                      Loading notifications....
                     </p>
                   ) : notifications.length === 0 ? (
                     <p className="px-1 py-3 text-xs text-slate-500 dark:text-slate-400">
