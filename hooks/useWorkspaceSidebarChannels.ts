@@ -41,7 +41,7 @@ export function useWorkspaceSidebarChannels() {
     return channels.map((channel) => ({
       id: channel.id,
       name: channel.name,
-      url: `/workspace/${workspaceSlug}`,
+      url: `/workspace/${workspaceSlug}/channel/${channel.id}`,
     }))
   }, [channels, workspaceSlug])
 
