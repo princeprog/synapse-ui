@@ -7,7 +7,8 @@ import { ChannelCreateModal } from "@/components/workspace/modal/channel-create-
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+import { WorkspaceSwitcher } from "@/components/workspace-switcher"
+import { useWorkspacesQuery } from "@/hooks/queries/workspaces/useWorkspacesQuery"
 import { useWorkspaceSidebarChannels } from "@/hooks/useWorkspaceSidebarChannels"
 import {
   Sidebar,
@@ -40,23 +41,6 @@ const data = {
     email: "m@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: <GalleryVerticalEndIcon />,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: <AudioLinesIcon />,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: <TerminalIcon />,
-      plan: "Free",
-    },
-  ],
   navMain: [
     {
       title: "Welcome",
@@ -104,11 +88,22 @@ export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
     createModalState,
   } = useWorkspaceSidebarChannels()
 
+  const { data: workspaces, isLoading: isWorkspacesLoading } = useWorkspacesQuery()
+
   return (
     <>
       <Sidebar collapsible="icon" {...props}>
         <SidebarHeader>
-          <TeamSwitcher teams={data.teams} />
+          {!isWorkspacesLoading && workspaces && workspaces.length > 0 && (
+            <WorkspaceSwitcher
+              workspaces={workspaces.map((ws: { name: string; slug: string; plan?: string }) => ({
+                name: ws.name,
+                slug: ws.slug,
+                logo: <GalleryVerticalEndIcon />,
+                plan: ws.plan || "-",
+              }))}
+            />
+          )}
         </SidebarHeader>
         <SidebarContent>
           <NavMain items={data.navMain} />
