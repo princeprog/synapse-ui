@@ -4,17 +4,35 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { useChannelDetailsQuery } from "@/hooks/queries/channels/use-channel-details-query";
 import { Hash, Info, Plus, Search, Send, Smile, AtSign } from "lucide-react";
-
+import { useParams } from "next/navigation";
+import { useEffect } from 'react';
 export default function ChannelPage() {
+
+    const params = useParams()
+    const slugParam = params?.slug
+    const channelIdParam = params?.id
+    const workspaceSlug = typeof slugParam === "string" ? slugParam : (slugParam?.[0] ?? "")
+    const channelIdSlug = typeof channelIdParam === "string" ? channelIdParam : (channelIdParam?.[0] ?? "")
+
+    const { data: channelDetails, isLoading, error, isSuccess } = useChannelDetailsQuery(workspaceSlug, channelIdSlug);
+
     return (
         <div className="flex flex-col h-full flex-1 min-h-0 bg-background relative">
+
             {/* Header Overlay - Adjusted to align with layout's SidebarTrigger */}
             <header className="flex items-center justify-between px-4 h-14 border-b shrink-0 absolute top-[-56px] left-0 right-0 z-20 pointer-events-none">
                 <div className="flex items-center gap-2 ml-10 pointer-events-auto">
                     <Separator orientation="vertical" className="h-4 mr-2" />
                     <Hash className="w-5 h-5 text-muted-foreground" />
-                    <h1 className="text-base font-bold">general</h1>
+                    {isLoading ? (
+                        <span className="text-sm text-muted-foreground">Loading...</span>
+                    ) : error ? (
+                        <span className="text-sm text-destructive">Error loading channel details</span>
+                    ) : (
+                        <h1 className="text-base font-bold text-black"> {channelDetails?.name}</h1>
+                    )}
                 </div>
                 <div className="flex items-center gap-2 pointer-events-auto">
                     <Button variant="ghost" size="icon">
@@ -95,12 +113,12 @@ export default function ChannelPage() {
                         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                             <Plus className="h-4 w-4" />
                         </Button>
-                        <Input 
-                            placeholder="Message #general" 
+                        <Input
+                            placeholder="Message #general"
                             className="flex-1 border-0 focus-visible:ring-0 px-0 h-9 shadow-none text-sm bg-transparent"
                         />
                         <div className="flex items-center gap-1 pr-1">
-                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                                 <AtSign className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
