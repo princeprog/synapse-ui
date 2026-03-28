@@ -24,7 +24,7 @@ export const useWorkspaceNotificationsSocket = () => {
       withCredentials: true,
       transports: ['websocket'],
     });
-
+    
     const handleNotificationCreated = () => {
       void queryClient.invalidateQueries({
         queryKey: WORKSPACE_NOTIFICATIONS_QUERY_KEY,
