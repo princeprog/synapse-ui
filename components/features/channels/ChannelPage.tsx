@@ -45,7 +45,7 @@ export default function ChannelPage() {
             </header>
 
             {/* Message Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 border-3">
                 {/* Date Separator */}
                 <div className="relative flex items-center py-4">
                     <Separator className="flex-1" />
