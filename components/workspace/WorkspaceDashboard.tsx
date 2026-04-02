@@ -311,8 +311,8 @@ export default function WorkspaceDashboard() {
                           </p>
 
                           {notification.type === "workspace.invite.created" &&
-                            notification.invitation?.status?.toLowerCase() === "pending" &&
-                            notification.invitation.id && (
+                            notification.status?.toLowerCase() === "pending" &&
+                            notification.invitation!.id && (
                               <div className="mt-3 flex items-center gap-2">
                                 <Button
                                   type="button"

@@ -25,6 +25,7 @@ export interface WorkspaceNotification {
   createdAt: string;
   workspace: WorkspaceNotificationWorkspace | null;
   invitation: WorkspaceNotificationInvitation | null;
+  status: string;
   message: string;
 }
 
