@@ -10,6 +10,7 @@ export type Message = {
     content: string;
     is_edited: boolean;
     created_at: Date;
+    username: string;
 };
 
 export const useChannelMessageQuery = (

@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useChannelDetailsQuery } from "@/hooks/queries/channels/use-channel-details-query";
+import { useChannelMessageQuery } from "@/hooks/queries/channels/use-channel-message-query";
 import { Hash, Info, Plus, Search, Send, Smile, AtSign } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useEffect } from 'react';
+import { useState, FormEvent, useRef, useEffect } from 'react';
+
 export default function ChannelPage() {
 
     const params = useParams()
@@ -18,8 +20,24 @@ export default function ChannelPage() {
 
     const { data: channelDetails, isLoading, error, isSuccess } = useChannelDetailsQuery(workspaceSlug, channelIdSlug);
 
+    // WebSocket messages hook
+    const {
+        messages,
+        isLoading: messagesLoading,
+        error: messagesError,
+        sendMessage
+    } = useChannelMessageQuery(workspaceSlug, channelIdSlug);
+
+    const [messageInput, setMessageInput] = useState("");
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll to bottom when new messages arrive
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+
     return (
-        <div className="flex flex-col h-full flex-1 min-h-0 bg-background relative">
+        <div className="flex flex-col h-screen flex-1 min-h-0 bg-background relative overflow-hidden">
 
             {/* Header Overlay - Adjusted to align with layout's SidebarTrigger */}
             <header className="flex items-center justify-between px-4 h-14 border-b shrink-0 absolute top-[-56px] left-0 right-0 z-20 pointer-events-none">
@@ -46,91 +64,94 @@ export default function ChannelPage() {
 
             {/* Message Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 border-3">
-                {/* Date Separator */}
-                <div className="relative flex items-center py-4">
-                    <Separator className="flex-1" />
-                    <span className="absolute left-1/2 -translate-x-1/2 bg-background px-2 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                        March 28th, 2026
-                    </span>
-                </div>
-
-                {/* Mock Messages */}
-                <div className="flex gap-3 group hover:bg-muted/30 p-2 rounded-lg transition-colors">
-                    <Avatar size="lg">
-                        <AvatarImage src="https://github.com/shadcn.png" />
-                        <AvatarFallback>JD</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col w-full">
-                        <div className="flex items-center gap-2">
-                            <span className="font-semibold text-sm">John Doe</span>
-                            <span className="text-[10px] text-muted-foreground">12:34 PM</span>
-                        </div>
-                        <p className="text-sm text-foreground/90">Hey team! I've just finished the initial layout for the channel page. What do you think?</p>
+                {messagesLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                        <span className="text-sm text-muted-foreground">Loading messages...</span>
                     </div>
-                </div>
-
-                <div className="flex gap-3 group hover:bg-muted/30 p-2 rounded-lg transition-colors">
-                    <Avatar size="lg">
-                        <AvatarImage src="" />
-                        <AvatarFallback>AS</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col w-full">
-                        <div className="flex items-center gap-2">
-                            <span className="font-semibold text-sm">Alice Smith</span>
-                            <span className="text-[10px] text-muted-foreground">12:36 PM</span>
-                        </div>
-                        <p className="text-sm text-foreground/90">It looks great! Very clean and matches the rest of the workspace. 🚀</p>
+                ) : messagesError ? (
+                    <div className="flex items-center justify-center h-full">
+                        <span className="text-sm text-destructive">{messagesError}</span>
                     </div>
-                </div>
-
-                <div className="flex gap-3 group hover:bg-muted/30 p-2 rounded-lg transition-colors">
-                    <Avatar size="lg">
-                        <AvatarImage src="https://github.com/nutlope.png" />
-                        <AvatarFallback>HM</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col w-full">
-                        <div className="flex items-center gap-2">
-                            <span className="font-semibold text-sm">Hassan M.</span>
-                            <span className="text-[10px] text-muted-foreground">12:40 PM</span>
+                ) : messages.length === 0 ? (
+                    <div className="flex items-center justify-center h-full">
+                        <div className="text-center space-y-2">
+                            <Hash className="w-12 h-12 text-muted-foreground mx-auto" />
+                            <p className="text-sm text-muted-foreground">No messages yet. Start the conversation!</p>
                         </div>
-                        <div className="text-sm text-foreground/90 space-y-2">
-                            <p>I agree. We should make sure it's fully responsive though.</p>
-                            <div className="bg-muted/50 border rounded-md p-3 max-w-sm mt-2">
-                                <p className="text-xs font-medium mb-1 flex items-center gap-2">
-                                    <Plus className="h-3 w-3" /> attachment_spec.pdf
-                                </p>
-                                <p className="text-[10px] text-muted-foreground">2.4 MB • PDF Document</p>
+                    </div>
+                ) : (
+                    <>
+                        {messages.map((message) => (
+                            <div key={message.id} className="flex gap-3 group hover:bg-muted/30 p-2 rounded-lg transition-colors">
+                                <Avatar size="lg">
+                                    <AvatarImage src="" />
+                                    <AvatarFallback>{message.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col w-full">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-sm">{message.username}</span>
+                                        <span className="text-[10px] text-muted-foreground">
+                                            {new Date(message.created_at).toLocaleTimeString('en-US', {
+                                                hour: 'numeric',
+                                                minute: '2-digit',
+                                                hour12: true
+                                            })}
+                                        </span>
+                                        {message.is_edited && (
+                                            <span className="text-[10px] text-muted-foreground italic">(edited)</span>
+                                        )}
+                                    </div>
+                                    <p className="text-sm text-foreground/90">{message.content}</p>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
+                        ))}
+                        <div ref={messagesEndRef} />
+                    </>
+                )}
             </div>
 
             {/* Message Input Area */}
             <div className="px-4 pb-4 shrink-0">
-                <div className="border rounded-xl bg-background shadow-sm overflow-hidden focus-within:ring-1 focus-within:ring-ring transition-shadow">
-                    <div className="flex items-center p-2 gap-2">
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                            <Plus className="h-4 w-4" />
-                        </Button>
-                        <Input
-                            placeholder="Message #general"
-                            className="flex-1 border-0 focus-visible:ring-0 px-0 h-9 shadow-none text-sm bg-transparent"
-                        />
-                        <div className="flex items-center gap-1 pr-1">
-                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                                <AtSign className="h-4 w-4" />
+                <form onSubmit={(e: FormEvent) => {
+                    e.preventDefault();
+                    if (!messageInput.trim()) return;
+                    sendMessage(messageInput);
+                    setMessageInput("");
+                }}>
+                    <div className="border rounded-xl bg-background shadow-sm overflow-hidden focus-within:ring-1 focus-within:ring-ring transition-shadow">
+                        <div className="flex items-center p-2 gap-2">
+                            <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                                <Plus className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                                <Smile className="h-4 w-4" />
-                            </Button>
-                            <Separator orientation="vertical" className="h-4 mx-1" />
-                            <Button size="icon" className="rounded-md bg-primary text-primary-foreground">
-                                <Send className="h-4 w-4" />
-                            </Button>
+                            <Input
+                                value={messageInput}
+                                onChange={(e) => setMessageInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        if (!messageInput.trim()) return;
+                                        sendMessage(messageInput);
+                                        setMessageInput("");
+                                    }
+                                }}
+                                placeholder={`Message #${channelDetails?.name || 'channel'}`}
+                                className="flex-1 border-0 focus-visible:ring-0 px-0 h-9 shadow-none text-sm bg-transparent"
+                            />
+                            <div className="flex items-center gap-1 pr-1">
+                                <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                                    <AtSign className="h-4 w-4" />
+                                </Button>
+                                <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                                    <Smile className="h-4 w-4" />
+                                </Button>
+                                <Separator orientation="vertical" className="h-4 mx-1" />
+                                <Button type="submit" size="icon" className="rounded-md bg-primary text-primary-foreground">
+                                    <Send className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </form>
                 <p className="text-[10px] text-center mt-2 text-muted-foreground">
                     <b>Return</b> to send, <b>Shift + Return</b> for new line
                 </p>
