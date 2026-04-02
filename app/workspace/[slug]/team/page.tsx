@@ -15,14 +15,6 @@ function getNextRole(role: string): "Admin" | "Member" {
   return role.toLowerCase() === "admin" ? "Member" : "Admin"
 }
 
-export function TypographyH2() {
-  return (
-    <h2 className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
-      Team Management
-    </h2>
-  )
-}
-
 export default function TeamPage() {
   const params = useParams()
   const slugParam = params?.slug
@@ -160,7 +152,6 @@ export default function TeamPage() {
 
   return (
     <div className="container mx-auto px-4">
-      <TypographyH2 />
       {errorMessage ? (
         <p className="mt-4 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
           {errorMessage}
