@@ -63,7 +63,7 @@ export default function ChannelPage() {
             </header>
 
             {/* Message Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 border-3">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
                 {messagesLoading ? (
                     <div className="flex items-center justify-center h-full">
                         <span className="text-sm text-muted-foreground">Loading messages...</span>
