@@ -4,6 +4,7 @@ import {
   LoginRequest,
   ProfileResponse,
   RegisterRequest,
+  UpdateProfileRequest,
 } from '@/lib/types/auth.types';
 import { apiService } from './api.service';
 
@@ -39,7 +40,29 @@ class AuthService {
   }
 
   async getProfile(): Promise<ProfileResponse> {
-    return apiService.request<ProfileResponse>('POST', SYNAPSE_API_ENDPOINTS.AUTH.PROFILE);
+    try {
+      return await apiService.request<ProfileResponse>(
+        'GET',
+        SYNAPSE_API_ENDPOINTS.USERS.MY_PROFILE,
+      );
+    } catch {
+      // Backward compatibility for older auth profile endpoint.
+      return apiService.request<ProfileResponse>(
+        'POST',
+        SYNAPSE_API_ENDPOINTS.AUTH.PROFILE,
+      );
+    }
+  }
+
+  async updateProfile(
+    userId: string,
+    payload: UpdateProfileRequest,
+  ): Promise<ProfileResponse> {
+    return apiService.request<ProfileResponse, UpdateProfileRequest>(
+      'PATCH',
+      SYNAPSE_API_ENDPOINTS.USERS.DETAIL(userId),
+      payload,
+    );
   }
 }
 
