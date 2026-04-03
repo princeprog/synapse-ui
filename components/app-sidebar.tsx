@@ -2,12 +2,19 @@
 
 import type { ComponentProps } from "react"
 import Link from "next/link"
+<<<<<<< HEAD
 import { useParams } from "next/navigation"
+=======
+import { useRouter } from "next/navigation"
+
+>>>>>>> 9cb967b (Add global profile settings and profile hooks)
 import { ChannelCreateModal } from "@/components/workspace/modal/channel-create-modal"
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
+import { useLogoutMutation } from "@/hooks/mutation/auth/useLogoutMutation"
+import { useProfileQuery } from "@/hooks/queries/auth/useProfileQuery"
 import { useWorkspacesQuery } from "@/hooks/queries/workspaces/useWorkspacesQuery"
 import { useWorkspaceSidebarChannels } from "@/hooks/useWorkspaceSidebarChannels"
 import { useWorkspaceNotificationsSocket } from "@/hooks/workspace/useWorkspaceNotificationsSocket"
@@ -19,15 +26,9 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import {
-  AudioLinesIcon,
   BookOpenIcon,
   GalleryVerticalEndIcon,
   LogOutIcon,
-  
-  TerminalIcon,
-  TerminalSquareIcon,
-  ClipboardList,
-  Gauge,
   HeartHandshake,
   Users,
   Inbox,
@@ -45,11 +46,6 @@ export const paramsToExtract = () => {
 }
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navMain: [
     {
       title: "Welcome",
@@ -84,8 +80,12 @@ function LeaveWorkspaceAction() {
 }
 
 export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
+<<<<<<< HEAD
   useWorkspaceNotificationsSocket()
 
+=======
+  const router = useRouter()
+>>>>>>> 9cb967b (Add global profile settings and profile hooks)
   const {
     channelItems,
     isLoading,
@@ -98,8 +98,25 @@ export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
     deleteChannel,
     createModalState,
   } = useWorkspaceSidebarChannels()
+  const { mutate: logout } = useLogoutMutation()
+  const { data: profile } = useProfileQuery()
 
   const { data: workspaces, isLoading: isWorkspacesLoading } = useWorkspacesQuery()
+
+  const userName =
+    [profile?.firstName, profile?.lastName].filter(Boolean).join(" ") ||
+    profile?.username ||
+    "User"
+  const userEmail = profile?.email || ""
+  const userAvatar = profile?.avatarUrl || ""
+
+  const handleLogout = () => {
+    logout(undefined, {
+      onSuccess: () => {
+        router.push("/login")
+      },
+    })
+  }
 
   return (
     <>
@@ -131,7 +148,14 @@ export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
           />
         </SidebarContent>
         <SidebarFooter>
-          <NavUser user={data.user} />
+          <NavUser
+            user={{
+              name: userName,
+              email: userEmail,
+              avatar: userAvatar,
+            }}
+            onLogout={handleLogout}
+          />
           <LeaveWorkspaceAction />
         </SidebarFooter>
         <SidebarRail />

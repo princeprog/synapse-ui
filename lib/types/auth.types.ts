@@ -20,3 +20,24 @@ export interface ProfileResponse {
   username: string;
   sessionId: number;
 }
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string | null;
+  emailVerified?: boolean;
+}
+
+export interface UpdateProfileRequest {
+  username?: string;
+  email?: string;
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string | null;
+}
+
+
