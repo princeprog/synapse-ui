@@ -2,7 +2,7 @@
 
 import type { ComponentProps } from "react"
 import Link from "next/link"
-
+import { useParams } from "next/navigation"
 import { ChannelCreateModal } from "@/components/workspace/modal/channel-create-modal"
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
@@ -35,6 +35,14 @@ import {
 const LEAVE_WORKSPACE_LINK_CLASSNAME =
   "inline-flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-sm font-medium text-red-500 transition-colors hover:bg-sidebar-accent hover:text-red-600"
 
+export const paramsToExtract = () => {
+  const params = useParams()
+  const slugParam = params?.slug
+  const workspaceSlug = typeof slugParam === "string" ? slugParam : (slugParam?.[0] ?? "")
+  return { workspaceSlug }
+
+}
+
 const data = {
   user: {
     name: "shadcn",
@@ -54,7 +62,7 @@ const data = {
     },
     {
       title: "Team",
-      url: "/workspace/synapse-workspace/team",
+      url: "team",
       icon: <Users />,
     },
     {
