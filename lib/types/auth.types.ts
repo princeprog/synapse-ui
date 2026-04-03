@@ -15,4 +15,24 @@ export interface AuthMessageResponse {
   message: string;
 }
 
-export type ProfileResponse = Record<string, unknown>;
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string | null;
+  emailVerified?: boolean;
+}
+
+export interface UpdateProfileRequest {
+  username?: string;
+  email?: string;
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string | null;
+}
+
+export type ProfileResponse = UserProfile;
