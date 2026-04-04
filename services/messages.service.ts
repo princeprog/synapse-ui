@@ -1,5 +1,9 @@
 import { SYNAPSE_API_ENDPOINTS } from '@/constants/api';
-import { MessageReactionActor, MessageReactionGroup } from '@/lib/types/message.types';
+import {
+  Message,
+  MessageReactionActor,
+  MessageReactionGroup,
+} from '@/lib/types/message.types';
 import { apiService } from './api.service';
 
 export type ToggleReactionResponse = {
@@ -19,6 +23,16 @@ export type MessageReactionUsersResponse = {
   emoji: string;
   reactors: MessageReactionActor[];
   count: number;
+};
+
+export type MessageRepliesResponse = {
+  messageId: string;
+  replies: Message[];
+};
+
+export type MessageThreadResponse = {
+  rootMessageId: string;
+  thread: Message[];
 };
 
 class MessagesService {
@@ -68,6 +82,28 @@ class MessagesService {
         messageId,
         emoji,
       ),
+    );
+  }
+
+  async getReplies(
+    workspaceSlug: string,
+    channelId: string,
+    messageId: string,
+  ): Promise<MessageRepliesResponse> {
+    return apiService.request<MessageRepliesResponse>(
+      'GET',
+      SYNAPSE_API_ENDPOINTS.MESSAGES.REPLIES(workspaceSlug, channelId, messageId),
+    );
+  }
+
+  async getThread(
+    workspaceSlug: string,
+    channelId: string,
+    messageId: string,
+  ): Promise<MessageThreadResponse> {
+    return apiService.request<MessageThreadResponse>(
+      'GET',
+      SYNAPSE_API_ENDPOINTS.MESSAGES.THREAD(workspaceSlug, channelId, messageId),
     );
   }
 }

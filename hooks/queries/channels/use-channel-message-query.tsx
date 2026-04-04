@@ -14,6 +14,16 @@ type ReactionsResult = {
     reactions: MessageReactionGroup[];
 };
 
+type RepliesResult = {
+    messageId: string;
+    replies: Message[];
+};
+
+type ThreadResult = {
+    rootMessageId: string;
+    thread: Message[];
+};
+
 export const useChannelMessageQuery = (
     workspaceSlug: string,
     channelId: string
@@ -22,6 +32,12 @@ export const useChannelMessageQuery = (
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const normalizeMessage = (message: Message): Message => ({
+        ...message,
+        reactions: message.reactions ?? [],
+        parent_context: message.parent_context ?? null,
+    });
 
     const applyReactionUpdate = (payload: { messageId: string; reactions: MessageReactionGroup[] }) => {
         setMessages((prev) =>
@@ -53,12 +69,7 @@ export const useChannelMessageQuery = (
             { workspaceSlug, channelId },
             (response: { success: boolean; data?: Message[] }) => {
                 if (response.success && response.data) {
-                    setMessages(
-                        response.data.map((message) => ({
-                            ...message,
-                            reactions: message.reactions ?? [],
-                        })),
-                    );
+                    setMessages(response.data.map(normalizeMessage));
                     setIsLoading(false);
                 } else {
                     setError("Failed to load messages");
@@ -70,14 +81,22 @@ export const useChannelMessageQuery = (
         // Listen for new messages
         const handleMessageCreated = (message: Message) => {
             console.log("📩 New message received:", message);
-            setMessages((prev) => [...prev, { ...message, reactions: message.reactions ?? [] }]);
+            setMessages((prev) => [...prev, normalizeMessage(message)]);
         };
 
         // Listen for message updates
         const handleMessageUpdated = (message: Message) => {
             console.log("✏️ Message updated:", message);
             setMessages((prev) =>
-                prev.map((msg) => (msg.id === message.id ? { ...message, reactions: message.reactions ?? msg.reactions ?? [] } : msg))
+                prev.map((msg) =>
+                    msg.id === message.id
+                        ? {
+                            ...normalizeMessage(message),
+                            reactions: message.reactions ?? msg.reactions ?? [],
+                            parent_context: message.parent_context ?? msg.parent_context ?? null,
+                        }
+                        : msg,
+                )
             );
         };
 
@@ -204,6 +223,54 @@ export const useChannelMessageQuery = (
         );
     };
 
+    const getMessageReplies = (
+        messageId: string,
+        onSuccess?: (replies: Message[]) => void,
+    ) => {
+        if (!socket) return;
+
+        socket.emit(
+            "messages:replies:get",
+            {
+                workspaceSlug,
+                channelId,
+                messageId,
+            },
+            (response: { success: boolean; data?: RepliesResult }) => {
+                if (response.success && response.data) {
+                    onSuccess?.(response.data.replies.map(normalizeMessage));
+                    return;
+                }
+
+                setError("Failed to fetch replies");
+            },
+        );
+    };
+
+    const getMessageThread = (
+        messageId: string,
+        onSuccess?: (thread: Message[]) => void,
+    ) => {
+        if (!socket) return;
+
+        socket.emit(
+            "messages:thread:get",
+            {
+                workspaceSlug,
+                channelId,
+                messageId,
+            },
+            (response: { success: boolean; data?: ThreadResult }) => {
+                if (response.success && response.data) {
+                    onSuccess?.(response.data.thread.map(normalizeMessage));
+                    return;
+                }
+
+                setError("Failed to fetch thread");
+            },
+        );
+    };
+
     return {
         messages,
         isLoading,
@@ -213,5 +280,7 @@ export const useChannelMessageQuery = (
         deleteMessage,
         toggleReaction,
         getMessageReactions,
+        getMessageReplies,
+        getMessageThread,
     };
 };

@@ -13,7 +13,7 @@ import {
 import { DEFAULT_REACTIONS, EMOJIS } from "@/constants/emoji";
 import { useChannelDetailsQuery } from "@/hooks/queries/channels/use-channel-details-query";
 import { useChannelMessageQuery } from "@/hooks/queries/channels/use-channel-message-query";
-import { Hash, Info, Plus, Search, Send, Smile, AtSign } from "lucide-react";
+import { Hash, Info, Plus, Search, Send, Smile, AtSign, CornerUpLeft } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useState, FormEvent, useRef, useEffect } from 'react';
 
@@ -52,7 +52,21 @@ export default function ChannelPage() {
     })
 
     const [messageInput, setMessageInput] = useState("");
+    const [replyingToId, setReplyingToId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const replyingToMessage = replyingToId
+        ? messages.find((message) => message.id === replyingToId) ?? null
+        : null;
+
+    const sendCurrentMessage = () => {
+        const content = messageInput.trim();
+        if (!content) return;
+
+        sendMessage(content, replyingToId ?? undefined);
+        setMessageInput("");
+        setReplyingToId(null);
+    };
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
@@ -126,6 +140,16 @@ export default function ChannelPage() {
                                         {group.messages.map((message) => (
                                             <div key={message.id} className="group/message relative rounded-md px-1 py-1 transition-colors hover:bg-muted/40">
                                                 <div className="pointer-events-none absolute -top-8 right-0 z-10 flex items-center gap-1 rounded-md border bg-background p-1 opacity-0 shadow-sm transition-opacity group-hover/message:pointer-events-auto group-hover/message:opacity-100">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-6 w-6"
+                                                        onClick={() => setReplyingToId(message.id)}
+                                                    >
+                                                        <CornerUpLeft className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Separator orientation="vertical" className="h-4" />
                                                     {DEFAULT_REACTIONS.map((reactionKey) => {
                                                         const emoji = EMOJIS[reactionKey];
                                                         if (!emoji) {
@@ -146,6 +170,22 @@ export default function ChannelPage() {
                                                         );
                                                     })}
                                                 </div>
+
+                                                {message.parent_id && (
+                                                    <div className="mb-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                                                        <span>↳</span>
+                                                        {message.parent_context?.exists ? (
+                                                            <span className="truncate">
+                                                                Replying to
+                                                                {" "}
+                                                                <b>@{message.parent_context.username ?? "user"}</b>
+                                                                {message.parent_context.content ? `: ${message.parent_context.content}` : ""}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="italic">Original message deleted</span>
+                                                        )}
+                                                    </div>
+                                                )}
 
                                                 <div className="flex items-center gap-2">
                                                     <p className="text-sm text-foreground/90">{message.content}</p>
@@ -190,11 +230,29 @@ export default function ChannelPage() {
 
             {/* Message Input Area */}
             <div className="px-4 pb-4 shrink-0">
+                {replyingToId && (
+                    <div className="mb-2 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                        <div className="flex items-start justify-between gap-2">
+                            <span className="truncate">
+                                {replyingToMessage
+                                    ? `Replying to @${replyingToMessage.username}: ${replyingToMessage.content}`
+                                    : "Replying to original message deleted"}
+                            </span>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                                onClick={() => setReplyingToId(null)}
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
+                )}
                 <form onSubmit={(e: FormEvent) => {
                     e.preventDefault();
-                    if (!messageInput.trim()) return;
-                    sendMessage(messageInput);
-                    setMessageInput("");
+                    sendCurrentMessage();
                 }}>
                     <div className="border rounded-xl bg-background shadow-sm overflow-hidden focus-within:ring-1 focus-within:ring-ring transition-shadow">
                         <div className="flex items-center p-2 gap-2">
@@ -207,9 +265,7 @@ export default function ChannelPage() {
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter" && !e.shiftKey) {
                                         e.preventDefault();
-                                        if (!messageInput.trim()) return;
-                                        sendMessage(messageInput);
-                                        setMessageInput("");
+                                        sendCurrentMessage();
                                     }
                                 }}
                                 placeholder={`Message #${channelDetails?.name || 'channel'}`}

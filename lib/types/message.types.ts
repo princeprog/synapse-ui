@@ -10,6 +10,13 @@ export type MessageReactionGroup = {
     reactors: MessageReactionActor[];
 }
 
+export type MessageParentContext = {
+    id: string;
+    username: string | null;
+    content: string | null;
+    exists: boolean;
+}
+
 export type Message = {
     id: string;
     channel_id: string;
@@ -17,7 +24,8 @@ export type Message = {
     parent_id: string | null;
     content: string;
     is_edited: boolean;
-        created_at: string | Date;
-        username: string;
-        reactions: MessageReactionGroup[];
+    created_at: string | Date;
+    username: string;
+    reactions: MessageReactionGroup[];
+    parent_context: MessageParentContext | null;
 }

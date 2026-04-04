@@ -44,6 +44,18 @@ export const SYNAPSE_API_ENDPOINTS = {
   MESSAGES: {
     LIST: (workspaceSlug: string, channelId: string) =>
       `/workspaces/${workspaceSlug}/channels/${channelId}/messages`,
+    REPLIES: (
+      workspaceSlug: string,
+      channelId: string,
+      messageId: string,
+    ) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/${messageId}/replies`,
+    THREAD: (
+      workspaceSlug: string,
+      channelId: string,
+      messageId: string,
+    ) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/${messageId}/thread`,
     TOGGLE_REACTION: (
       workspaceSlug: string,
       channelId: string,
