@@ -28,6 +28,21 @@ export default function ChannelPage() {
         sendMessage
     } = useChannelMessageQuery(workspaceSlug, channelIdSlug);
 
+    const groupedMessages : { username: string, messages: typeof messages }[] = []
+
+    messages.forEach((msg) => {
+        const prev = groupedMessages[groupedMessages.length - 1]
+        // Group by username and time (e.g. if within 5 mins of each other)
+        if (prev && prev.username === msg.username) {
+            prev.messages.push(msg)
+        } else {
+            groupedMessages.push({
+                username: msg.username,
+                messages: [msg]
+            })
+        }
+    })
+
     const [messageInput, setMessageInput] = useState("");
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -81,27 +96,33 @@ export default function ChannelPage() {
                     </div>
                 ) : (
                     <>
-                        {messages.map((message) => (
-                            <div key={message.id} className="flex gap-3 group hover:bg-muted/30 p-2 rounded-lg transition-colors">
+                        {groupedMessages.map((group, i) => (
+                            <div key={i} className="flex gap-3 group hover:bg-muted/30 p-2 rounded-lg transition-colors">
                                 <Avatar size="lg">
                                     <AvatarImage src="" />
-                                    <AvatarFallback>{message.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                    <AvatarFallback>{group.username.substring(0, 2).toUpperCase()}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex flex-col w-full">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-semibold text-sm">{message.username}</span>
+                                        <span className="font-semibold text-sm">{group.username}</span>
                                         <span className="text-[10px] text-muted-foreground">
-                                            {new Date(message.created_at).toLocaleTimeString('en-US', {
+                                            {new Date(group.messages[0].created_at).toLocaleTimeString('en-US', {
                                                 hour: 'numeric',
                                                 minute: '2-digit',
                                                 hour12: true
                                             })}
                                         </span>
-                                        {message.is_edited && (
-                                            <span className="text-[10px] text-muted-foreground italic">(edited)</span>
-                                        )}
                                     </div>
-                                    <p className="text-sm text-foreground/90">{message.content}</p>
+                                    <div className="flex flex-col mt-1">
+                                        {group.messages.map((message) => (
+                                            <div key={message.id} className="flex items-center gap-2 group/message">
+                                                <p className="text-sm text-foreground/90">{message.content}</p>
+                                                {message.is_edited && (
+                                                    <span className="text-[10px] text-muted-foreground italic">(edited)</span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         ))}
