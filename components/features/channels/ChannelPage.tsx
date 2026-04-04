@@ -33,7 +33,7 @@ export default function ChannelPage() {
     messages.forEach((msg) => {
         const prev = groupedMessages[groupedMessages.length - 1]
         // Group by username and time (e.g. if within 5 mins of each other)
-        if (prev && prev.username === msg.username) {
+        if (prev && prev.username === msg.username && new Date(msg.created_at).getTime() - new Date(prev.messages[prev.messages.length - 1].created_at).getTime() < 5 * 60 * 1000) {
             prev.messages.push(msg)
         } else {
             groupedMessages.push({
