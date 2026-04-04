@@ -4,6 +4,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { DEFAULT_REACTIONS, EMOJIS } from "@/constants/emoji";
 import { useChannelDetailsQuery } from "@/hooks/queries/channels/use-channel-details-query";
 import { useChannelMessageQuery } from "@/hooks/queries/channels/use-channel-message-query";
 import { Hash, Info, Plus, Search, Send, Smile, AtSign } from "lucide-react";
@@ -18,14 +25,15 @@ export default function ChannelPage() {
     const workspaceSlug = typeof slugParam === "string" ? slugParam : (slugParam?.[0] ?? "")
     const channelIdSlug = typeof channelIdParam === "string" ? channelIdParam : (channelIdParam?.[0] ?? "")
 
-    const { data: channelDetails, isLoading, error, isSuccess } = useChannelDetailsQuery(workspaceSlug, channelIdSlug);
+    const { data: channelDetails, isLoading, error } = useChannelDetailsQuery(workspaceSlug, channelIdSlug);
 
     // WebSocket messages hook
     const {
         messages,
         isLoading: messagesLoading,
         error: messagesError,
-        sendMessage
+        sendMessage,
+        toggleReaction,
     } = useChannelMessageQuery(workspaceSlug, channelIdSlug);
 
     const groupedMessages : { username: string, messages: typeof messages }[] = []
@@ -52,7 +60,8 @@ export default function ChannelPage() {
     }, [messages]);
 
     return (
-        <div className="flex flex-col h-screen flex-1 min-h-0 bg-background relative overflow-hidden">
+        <TooltipProvider>
+            <div className="flex flex-col h-screen flex-1 min-h-0 bg-background relative overflow-hidden">
 
             {/* Header Overlay - Adjusted to align with layout's SidebarTrigger */}
             <header className="flex items-center justify-between px-4 h-14 border-b shrink-0 absolute top-[-56px] left-0 right-0 z-20 pointer-events-none">
@@ -113,12 +122,60 @@ export default function ChannelPage() {
                                             })}
                                         </span>
                                     </div>
-                                    <div className="flex flex-col mt-1">
+                                    <div className="flex flex-col mt-1 gap-1">
                                         {group.messages.map((message) => (
-                                            <div key={message.id} className="flex items-center gap-2 group/message">
-                                                <p className="text-sm text-foreground/90">{message.content}</p>
-                                                {message.is_edited && (
-                                                    <span className="text-[10px] text-muted-foreground italic">(edited)</span>
+                                            <div key={message.id} className="group/message relative rounded-md px-1 py-1 transition-colors hover:bg-muted/40">
+                                                <div className="pointer-events-none absolute -top-8 right-0 z-10 flex items-center gap-1 rounded-md border bg-background p-1 opacity-0 shadow-sm transition-opacity group-hover/message:pointer-events-auto group-hover/message:opacity-100">
+                                                    {DEFAULT_REACTIONS.map((reactionKey) => {
+                                                        const emoji = EMOJIS[reactionKey];
+                                                        if (!emoji) {
+                                                            return null;
+                                                        }
+
+                                                        return (
+                                                            <Button
+                                                                key={reactionKey}
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-6 w-6 text-sm"
+                                                                onClick={() => toggleReaction(message.id, emoji)}
+                                                            >
+                                                                {emoji}
+                                                            </Button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm text-foreground/90">{message.content}</p>
+                                                    {message.is_edited && (
+                                                        <span className="text-[10px] text-muted-foreground italic">(edited)</span>
+                                                    )}
+                                                </div>
+
+                                                {message.reactions.length > 0 && (
+                                                    <div className="mt-1 flex flex-wrap gap-1">
+                                                        {message.reactions.map((reaction) => (
+                                                            <Tooltip key={`${message.id}-${reaction.emoji}`}>
+                                                                <TooltipTrigger asChild>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => toggleReaction(message.id, reaction.emoji)}
+                                                                        className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-foreground/90 hover:bg-muted"
+                                                                    >
+                                                                        <span>{reaction.emoji}</span>
+                                                                        <span>{reaction.count}</span>
+                                                                    </button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top" className="max-w-56 text-xs leading-relaxed">
+                                                                    {reaction.reactors.length > 0
+                                                                        ? reaction.reactors.map((reactor) => reactor.username).join(", ")
+                                                                        : "No reactions yet"}
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        ))}
+                                                    </div>
                                                 )}
                                             </div>
                                         ))}
@@ -177,6 +234,7 @@ export default function ChannelPage() {
                     <b>Return</b> to send, <b>Shift + Return</b> for new line
                 </p>
             </div>
-        </div>
+            </div>
+        </TooltipProvider>
     );
 }

@@ -41,4 +41,24 @@ export const SYNAPSE_API_ENDPOINTS = {
     DELETE: (workspaceSlug: string, channelId: string) =>
       `/workspaces/${workspaceSlug}/channels/${channelId}`,
   },
+  MESSAGES: {
+    LIST: (workspaceSlug: string, channelId: string) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages`,
+    TOGGLE_REACTION: (
+      workspaceSlug: string,
+      channelId: string,
+      messageId: string,
+      emoji: string,
+    ) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`,
+    REACTIONS: (workspaceSlug: string, channelId: string, messageId: string) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/${messageId}/reactions`,
+    REACTION_USERS: (
+      workspaceSlug: string,
+      channelId: string,
+      messageId: string,
+      emoji: string,
+    ) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}/users`,
+  },
 } as const;

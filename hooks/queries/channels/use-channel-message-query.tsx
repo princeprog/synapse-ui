@@ -1,16 +1,17 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useSocket } from "@/hooks/use-socket";
+import type { Message, MessageReactionGroup } from "@/lib/types/message.types";
 
-export type Message = {
-    id: string;
-    channel_id: string;
-    sender_id: string;
-    parent_id: string | null;
-    content: string;
-    is_edited: boolean;
-    created_at: Date;
-    username: string;
+type ToggleReactionResult = {
+    messageId: string;
+    emoji: string;
+    action: "added" | "removed";
+    reactions: MessageReactionGroup[];
+};
+
+type ReactionsResult = {
+    messageId: string;
+    reactions: MessageReactionGroup[];
 };
 
 export const useChannelMessageQuery = (
@@ -18,10 +19,19 @@ export const useChannelMessageQuery = (
     channelId: string
 ) => {
     const socket = useSocket();
-    const queryClient = useQueryClient();
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const applyReactionUpdate = (payload: { messageId: string; reactions: MessageReactionGroup[] }) => {
+        setMessages((prev) =>
+            prev.map((message) =>
+                message.id === payload.messageId
+                    ? { ...message, reactions: payload.reactions }
+                    : message,
+            ),
+        );
+    };
 
     useEffect(() => {
         if (!socket || !workspaceSlug || !channelId) return;
@@ -43,7 +53,12 @@ export const useChannelMessageQuery = (
             { workspaceSlug, channelId },
             (response: { success: boolean; data?: Message[] }) => {
                 if (response.success && response.data) {
-                    setMessages(response.data);
+                    setMessages(
+                        response.data.map((message) => ({
+                            ...message,
+                            reactions: message.reactions ?? [],
+                        })),
+                    );
                     setIsLoading(false);
                 } else {
                     setError("Failed to load messages");
@@ -55,14 +70,14 @@ export const useChannelMessageQuery = (
         // Listen for new messages
         const handleMessageCreated = (message: Message) => {
             console.log("📩 New message received:", message);
-            setMessages((prev) => [...prev, message]);
+            setMessages((prev) => [...prev, { ...message, reactions: message.reactions ?? [] }]);
         };
 
         // Listen for message updates
         const handleMessageUpdated = (message: Message) => {
             console.log("✏️ Message updated:", message);
             setMessages((prev) =>
-                prev.map((msg) => (msg.id === message.id ? message : msg))
+                prev.map((msg) => (msg.id === message.id ? { ...message, reactions: message.reactions ?? msg.reactions ?? [] } : msg))
             );
         };
 
@@ -72,9 +87,14 @@ export const useChannelMessageQuery = (
             setMessages((prev) => prev.filter((msg) => msg.id !== payload.id));
         };
 
+        const handleReactionToggled = (payload: ToggleReactionResult) => {
+            applyReactionUpdate(payload);
+        };
+
         socket.on("messages:created", handleMessageCreated);
         socket.on("messages:updated", handleMessageUpdated);
         socket.on("messages:deleted", handleMessageDeleted);
+        socket.on("messages:reaction:toggled", handleReactionToggled);
 
         // Cleanup: leave room and remove listeners
         return () => {
@@ -82,6 +102,7 @@ export const useChannelMessageQuery = (
             socket.off("messages:created", handleMessageCreated);
             socket.off("messages:updated", handleMessageUpdated);
             socket.off("messages:deleted", handleMessageDeleted);
+            socket.off("messages:reaction:toggled", handleReactionToggled);
         };
     }, [socket, workspaceSlug, channelId]);
 
@@ -143,6 +164,46 @@ export const useChannelMessageQuery = (
         );
     };
 
+    const toggleReaction = (messageId: string, emoji: string) => {
+        if (!socket) return;
+
+        socket.emit(
+            "messages:reaction:toggle",
+            {
+                workspaceSlug,
+                channelId,
+                messageId,
+                emoji,
+            },
+            (response: { success: boolean; data?: ToggleReactionResult }) => {
+                if (response.success && response.data) {
+                    applyReactionUpdate(response.data);
+                    return;
+                }
+
+                setError("Failed to update reaction");
+            },
+        );
+    };
+
+    const getMessageReactions = (messageId: string) => {
+        if (!socket) return;
+
+        socket.emit(
+            "messages:reactions:get",
+            {
+                workspaceSlug,
+                channelId,
+                messageId,
+            },
+            (response: { success: boolean; data?: ReactionsResult }) => {
+                if (response.success && response.data) {
+                    applyReactionUpdate(response.data);
+                }
+            },
+        );
+    };
+
     return {
         messages,
         isLoading,
@@ -150,5 +211,7 @@ export const useChannelMessageQuery = (
         sendMessage,
         updateMessage,
         deleteMessage,
+        toggleReaction,
+        getMessageReactions,
     };
 };
