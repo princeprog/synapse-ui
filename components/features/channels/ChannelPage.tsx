@@ -23,6 +23,20 @@ import { useState, FormEvent, useRef, useEffect, useMemo, type ReactNode } from 
 
 const MENTION_REGEX = /(@[a-zA-Z0-9_]+)/g
 
+type MentionSuggestion = {
+  userId: string
+  username: string
+  email: string
+  isBroadcast?: boolean
+}
+
+const EVERYONE_SUGGESTION: MentionSuggestion = {
+  userId: "__everyone__",
+  username: "everyone",
+  email: "Notify everyone in this channel",
+  isBroadcast: true,
+}
+
 export default function ChannelPage() {
   const params = useParams()
   const slugParam = params?.slug
@@ -98,16 +112,25 @@ export default function ChannelPage() {
     ? messages.find((message) => message.id === replyingToId) ?? null
     : null
 
-  const mentionSuggestions = useMemo(() => {
+  const mentionSuggestions = useMemo<MentionSuggestion[]>(() => {
     const normalizedQuery = mentionQuery.trim().toLowerCase()
 
-    return workspaceMembers
-      .filter((member) => {
+    const combinedSuggestions: MentionSuggestion[] = [
+      EVERYONE_SUGGESTION,
+      ...workspaceMembers.map((member) => ({
+        userId: member.userId,
+        username: member.username,
+        email: member.email,
+      })),
+    ]
+
+    return combinedSuggestions
+      .filter((suggestion) => {
         if (!normalizedQuery) {
           return true
         }
 
-        return member.username.toLowerCase().includes(normalizedQuery)
+        return suggestion.username.toLowerCase().includes(normalizedQuery)
       })
       .slice(0, 6)
   }, [workspaceMembers, mentionQuery])
@@ -213,12 +236,13 @@ export default function ChannelPage() {
 
       const isCurrentUserMention =
         Boolean(currentUsername) && token.slice(1).toLowerCase() === currentUsername?.toLowerCase()
+      const isEveryoneMention = token.toLowerCase() === "@everyone"
 
       return (
         <span
           key={`${token}-${index}`}
           className={
-            isCurrentUserMention
+            isCurrentUserMention || isEveryoneMention
               ? "rounded bg-amber-200/70 px-1 font-semibold text-amber-900"
               : "rounded bg-muted px-1 text-foreground/90"
           }
@@ -523,7 +547,9 @@ export default function ChannelPage() {
                   }}
                 >
                   <span className="font-medium">@{member.username}</span>
-                  <span className="ml-auto text-xs text-muted-foreground">{member.email}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {member.isBroadcast ? "Everyone" : member.email}
+                  </span>
                 </button>
               ))}
             </div>
