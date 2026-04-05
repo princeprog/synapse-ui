@@ -2,7 +2,9 @@ export type WorkspaceNotificationType =
   | 'workspace.invite.created'
   | 'workspace.invite.revoked'
   | 'workspace.invite.accepted'
-  | 'workspace.invite.declined';
+  | 'workspace.invite.declined'
+  | 'message.mention.created'
+  | 'message.reply.created';
 
 export interface WorkspaceNotificationWorkspace {
   id: string;
@@ -25,6 +27,7 @@ export interface WorkspaceNotification {
   createdAt: string;
   workspace: WorkspaceNotificationWorkspace | null;
   invitation: WorkspaceNotificationInvitation | null;
+  status: string;
   message: string;
 }
 

@@ -36,3 +36,8 @@ export interface UpdateProfileRequest {
 }
 
 export type ProfileResponse = UserProfile;
+export interface ProfileResponse {
+  userId: string;
+  username: string;
+  sessionId: number;
+}

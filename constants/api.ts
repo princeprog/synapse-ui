@@ -42,7 +42,49 @@ export const SYNAPSE_API_ENDPOINTS = {
       `/workspaces/${workspaceSlug}/channels/${channelId}`,
     UPDATE: (workspaceSlug: string, channelId: string) =>
       `/workspaces/${workspaceSlug}/channels/${channelId}`,
+    MARK_READ: (workspaceSlug: string, channelId: string) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/read`,
     DELETE: (workspaceSlug: string, channelId: string) =>
       `/workspaces/${workspaceSlug}/channels/${channelId}`,
+  },
+  MESSAGES: {
+    LIST: (workspaceSlug: string, channelId: string) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages`,
+    SEARCH: (workspaceSlug: string, channelId: string, query: string) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/search${query ? `?${query}` : ''}`,
+    PIN: (workspaceSlug: string, channelId: string, messageId: string) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/${messageId}/pin`,
+    PINNED: (workspaceSlug: string, channelId: string) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/pinned`,
+    MARK_SEEN: (workspaceSlug: string, channelId: string, messageId: string) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/${messageId}/seen`,
+    REPLIES: (
+      workspaceSlug: string,
+      channelId: string,
+      messageId: string,
+    ) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/${messageId}/replies`,
+    THREAD: (
+      workspaceSlug: string,
+      channelId: string,
+      messageId: string,
+    ) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/${messageId}/thread`,
+    TOGGLE_REACTION: (
+      workspaceSlug: string,
+      channelId: string,
+      messageId: string,
+      emoji: string,
+    ) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`,
+    REACTIONS: (workspaceSlug: string, channelId: string, messageId: string) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/${messageId}/reactions`,
+    REACTION_USERS: (
+      workspaceSlug: string,
+      channelId: string,
+      messageId: string,
+      emoji: string,
+    ) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}/users`,
   },
 } as const;

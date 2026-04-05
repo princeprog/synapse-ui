@@ -15,6 +15,8 @@ type ChannelActionTarget = {
 
 type ChannelSidebarItem = ChannelActionTarget & {
   url: string
+  unreadCount: number
+  mentionUnreadCount: number
 }
 
 export function useWorkspaceSidebarChannels() {
@@ -42,6 +44,8 @@ export function useWorkspaceSidebarChannels() {
       id: channel.id,
       name: channel.name,
       url: `/workspace/${workspaceSlug}/channel/${channel.id}`,
+      unreadCount: channel.unreadCount ?? 0,
+      mentionUnreadCount: channel.mentionUnreadCount ?? 0,
     }))
   }, [channels, workspaceSlug])
 

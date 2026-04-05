@@ -5,6 +5,8 @@ export interface Channel {
   slug?: string;
   createdAt?: string;
   updatedAt?: string;
+  unreadCount?: number;
+  mentionUnreadCount?: number;
 }
 
 export interface CreateChannelRequest {

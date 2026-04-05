@@ -4,6 +4,7 @@ import type { ComponentProps } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
+import { useParams } from "next/navigation"
 import { ChannelCreateModal } from "@/components/workspace/modal/channel-create-modal"
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
@@ -13,6 +14,7 @@ import { useLogoutMutation } from "@/hooks/mutation/auth/useLogoutMutation"
 import { useProfileQuery } from "@/hooks/queries/auth/useProfileQuery"
 import { useWorkspacesQuery } from "@/hooks/queries/workspaces/useWorkspacesQuery"
 import { useWorkspaceSidebarChannels } from "@/hooks/useWorkspaceSidebarChannels"
+import { useWorkspaceNotificationsSocket } from "@/hooks/workspace/useWorkspaceNotificationsSocket"
 import {
   Sidebar,
   SidebarContent,
@@ -32,6 +34,14 @@ import {
 const LEAVE_WORKSPACE_LINK_CLASSNAME =
   "inline-flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-sm font-medium text-red-500 transition-colors hover:bg-sidebar-accent hover:text-red-600"
 
+export const paramsToExtract = () => {
+  const params = useParams()
+  const slugParam = params?.slug
+  const workspaceSlug = typeof slugParam === "string" ? slugParam : (slugParam?.[0] ?? "")
+  return { workspaceSlug }
+
+}
+
 const data = {
   navMain: [
     {
@@ -46,7 +56,7 @@ const data = {
     },
     {
       title: "Team",
-      url: "/workspace/synapse-workspace/team",
+      url: "team",
       icon: <Users />,
     },
     {
@@ -68,6 +78,8 @@ function LeaveWorkspaceAction() {
 
 export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
   const router = useRouter()
+  useWorkspaceNotificationsSocket()
+
   const {
     channelItems,
     isLoading,
