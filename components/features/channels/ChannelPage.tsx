@@ -11,13 +11,23 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { DEFAULT_REACTIONS, EMOJIS } from "@/constants/emoji"
 import { useChannelDetailsQuery } from "@/hooks/queries/channels/use-channel-details-query"
 import { useChannelMessageQuery } from "@/hooks/queries/channels/use-channel-message-query"
 import { useWorkspaceMembersQuery } from "@/hooks/queries/workspaces/useWorkspaceMembersQuery"
+import type { Message as ChannelMessage } from "@/lib/types/message.types"
 import { authService } from "@/services/auth.service"
 import { channelsService } from "@/services/channels.service"
-import { Hash, Info, Plus, Search, Send, Smile, AtSign, CornerUpLeft, ChevronDown, ChevronUp } from "lucide-react"
+import { messagesService } from "@/services/messages.service"
+import { SearchMessagesPanel } from "./SearchMessagesPanel"
+import { Hash, Info, Plus, Search, Send, Smile, AtSign, CornerUpLeft, ChevronDown, ChevronUp, PencilLine, Copy, Link2, Trash2, ArrowDown, Pin } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useState, FormEvent, useRef, useEffect, useMemo, type ReactNode } from "react"
 
@@ -58,8 +68,12 @@ export default function ChannelPage() {
     messages,
     isLoading: messagesLoading,
     error: messagesError,
+    refreshMessages,
     sendMessage,
     toggleReaction,
+    updateMessage,
+    deleteMessage,
+    getMessageThread,
   } = useChannelMessageQuery(workspaceSlug, channelIdSlug)
 
   const groupedMessages: { username: string; messages: typeof messages }[] = []
@@ -105,8 +119,16 @@ export default function ChannelPage() {
   const [mentionQuery, setMentionQuery] = useState("")
   const [activeMentionIndex, setActiveMentionIndex] = useState(0)
   const [expandedThreadIds, setExpandedThreadIds] = useState<string[]>([])
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [threadPanelOpen, setThreadPanelOpen] = useState(false)
+  const [threadRootMessage, setThreadRootMessage] = useState<ChannelMessage | null>(null)
+  const [threadMessages, setThreadMessages] = useState<ChannelMessage[]>([])
+  const [isNearBottom, setIsNearBottom] = useState(true)
+  const [searchPanelOpen, setSearchPanelOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const seenMessagesRef = useRef<Set<string>>(new Set())
 
   const replyingToMessage = replyingToId
     ? messages.find((message) => message.id === replyingToId) ?? null
@@ -228,6 +250,73 @@ export default function ChannelPage() {
     )
   }
 
+  const openThreadPanel = (message: ChannelMessage) => {
+    setThreadRootMessage(message)
+    setThreadPanelOpen(true)
+    getMessageThread(message.id, (thread) => {
+      setThreadMessages(thread)
+    })
+  }
+
+  const beginEditMessage = (message: ChannelMessage) => {
+    setEditingMessageId(message.id)
+    setMessageInput(message.content)
+    setReplyingToId(null)
+    setMentionStart(null)
+    setMentionQuery("")
+    setActiveMentionIndex(0)
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      inputRef.current?.setSelectionRange(message.content.length, message.content.length)
+    })
+  }
+
+  const copyMessageText = async (message: ChannelMessage) => {
+    await navigator.clipboard.writeText(message.content)
+  }
+
+  const copyMessageLink = async (message: ChannelMessage) => {
+    const link = `${window.location.origin}${window.location.pathname}#message-${message.id}`
+    await navigator.clipboard.writeText(link)
+  }
+
+  const deleteOwnMessage = (message: ChannelMessage) => {
+    const confirmDelete = window.confirm("Delete this message?")
+    if (!confirmDelete) {
+      return
+    }
+
+    deleteMessage(message.id)
+    if (editingMessageId === message.id) {
+      setEditingMessageId(null)
+      setMessageInput("")
+    }
+  }
+
+  const togglePinMessage = async (message: ChannelMessage) => {
+    try {
+      if (message.is_pinned) {
+        await messagesService.unpin(workspaceSlug, channelIdSlug, message.id)
+      } else {
+        await messagesService.pin(workspaceSlug, channelIdSlug, message.id)
+      }
+
+      refreshMessages()
+    } catch (error) {
+      console.error("Failed to toggle pin:", error)
+    }
+  }
+
+  const jumpToMessage = (messageId: string) => {
+    const anchor = document.getElementById(`message-${messageId}`)
+    if (!anchor) {
+      return
+    }
+
+    window.location.hash = `message-${messageId}`
+    anchor.scrollIntoView({ behavior: "smooth", block: "center" })
+  }
+
   const renderMessageContent = (content: string): ReactNode[] => {
     return content.split(MENTION_REGEX).map((token, index) => {
       if (!token.startsWith("@")) {
@@ -259,7 +348,13 @@ export default function ChannelPage() {
       return
     }
 
-    sendMessage(content, replyingToId ?? undefined)
+    if (editingMessageId) {
+      updateMessage(editingMessageId, content)
+      setEditingMessageId(null)
+    } else {
+      sendMessage(content, replyingToId ?? undefined)
+    }
+
     setMessageInput("")
     setReplyingToId(null)
     setMentionStart(null)
@@ -287,8 +382,78 @@ export default function ChannelPage() {
   }
 
   useEffect(() => {
+    if (!isNearBottom) {
+      return
+    }
+
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages, isNearBottom])
+
+  useEffect(() => {
+    const container = messagesContainerRef.current
+    if (!container) {
+      return
+    }
+
+    const handleScroll = () => {
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
+      setIsNearBottom(distanceFromBottom < 120)
+    }
+
+    handleScroll()
+    container.addEventListener("scroll", handleScroll)
+
+    return () => {
+      container.removeEventListener("scroll", handleScroll)
+    }
+  }, [])
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (!hash.startsWith("#message-")) {
+      return
+    }
+
+    const messageId = hash.replace("#message-", "")
+    const anchor = document.getElementById(`message-${messageId}`)
+    anchor?.scrollIntoView({ behavior: "smooth", block: "center" })
   }, [messages])
+
+  useEffect(() => {
+    const container = messagesContainerRef.current
+    if (!container || !workspaceSlug || !channelIdSlug) {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const messageId = entry.target.getAttribute("data-message-id")
+            if (messageId && !seenMessagesRef.current.has(messageId)) {
+              seenMessagesRef.current.add(messageId)
+              // Mark message as seen
+              messagesService
+                .markSeen(workspaceSlug, channelIdSlug, messageId)
+                .catch((error) => console.error("Failed to mark message as seen:", error))
+            }
+          }
+        })
+      },
+      {
+        root: container,
+        threshold: 0.5,
+      }
+    )
+
+    // Observe all messages
+    const messageElements = container.querySelectorAll("[data-message-id]")
+    messageElements.forEach((el) => observer.observe(el))
+
+    return () => {
+      messageElements.forEach((el) => observer.unobserve(el))
+    }
+  }, [workspaceSlug, channelIdSlug, messages])
 
   useEffect(() => {
     if (!workspaceSlug || !channelIdSlug || messagesLoading) {
@@ -320,7 +485,7 @@ export default function ChannelPage() {
             )}
           </div>
           <div className="flex items-center gap-2 pointer-events-auto">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => setSearchPanelOpen(true)}>
               <Search className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon">
@@ -329,7 +494,18 @@ export default function ChannelPage() {
           </div>
         </header>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+        <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 relative">
+          {!isNearBottom && messages.length > 0 && (
+            <Button
+              type="button"
+              size="sm"
+              className="absolute bottom-4 right-4 z-20 rounded-full shadow-lg"
+              onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })}
+            >
+              <ArrowDown className="mr-2 h-4 w-4" />
+              Jump to latest
+            </Button>
+          )}
           {messagesLoading ? (
             <div className="flex items-center justify-center h-full">
               <span className="text-sm text-muted-foreground">Loading messages...</span>
@@ -347,169 +523,277 @@ export default function ChannelPage() {
             </div>
           ) : (
             <>
-              {groupedMessages.map((group, i) => (
-                <div key={i} className="flex gap-3 group hover:bg-muted/30 p-2 rounded-lg transition-colors">
-                  <Avatar size="lg">
-                    <AvatarImage src="" />
-                    <AvatarFallback>{group.username.substring(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col w-full">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm">{group.username}</span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(group.messages[0].created_at).toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
-                      </span>
-                    </div>
-                    <div className="flex flex-col mt-1 gap-1">
-                      {group.messages.map((message) => {
-                        const isMentioningCurrentUser =
-                          Boolean(currentUserId) &&
-                          Array.isArray(message.mentioned_user_ids) &&
-                          message.mentioned_user_ids.includes(currentUserId ?? "")
+              {groupedMessages.map((group, i) => {
+                const currentDay = new Date(group.messages[0].created_at).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })
+                const previousDay =
+                  i > 0
+                    ? new Date(groupedMessages[i - 1].messages[0].created_at).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    : null
 
-                        const threadReplies = expandedThreadIds.includes(message.id)
-                          ? getThreadReplies(message.id)
-                          : []
+                return (
+                  <div key={i} className="space-y-3">
+                    {currentDay !== previousDay && (
+                      <div className="flex items-center gap-3 py-2">
+                        <Separator className="flex-1" />
+                        <span className="rounded-full border bg-muted/40 px-3 py-1 text-[11px] font-medium text-muted-foreground">
+                          {currentDay}
+                        </span>
+                        <Separator className="flex-1" />
+                      </div>
+                    )}
+                    <div className="flex gap-3 group hover:bg-muted/30 p-2 rounded-lg transition-colors">
+                      <Avatar size="lg">
+                        <AvatarImage src="" />
+                        <AvatarFallback>{group.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col w-full">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm">{group.username}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(group.messages[0].created_at).toLocaleTimeString("en-US", {
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex flex-col mt-1 gap-1">
+                          {group.messages.map((message) => {
+                            const isMentioningCurrentUser =
+                              Boolean(currentUserId) &&
+                              Array.isArray(message.mentioned_user_ids) &&
+                              message.mentioned_user_ids.includes(currentUserId ?? "")
+                            const isOwnMessage = message.sender_id === currentUserId
 
-                        return (
-                          <div
-                            key={message.id}
-                            className={
-                              "group/message relative rounded-md px-1 py-1 transition-colors hover:bg-muted/40 " +
-                              (isMentioningCurrentUser
-                                ? "border border-amber-300/70 bg-amber-50/80"
-                                : "")
-                            }
-                          >
-                            <div className="pointer-events-none absolute -top-8 right-0 z-10 flex items-center gap-1 rounded-md border bg-background p-1 opacity-0 shadow-sm transition-opacity group-hover/message:pointer-events-auto group-hover/message:opacity-100">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => setReplyingToId(message.id)}
-                              >
-                                <CornerUpLeft className="h-3.5 w-3.5" />
-                              </Button>
-                              <Separator orientation="vertical" className="h-4" />
-                              {DEFAULT_REACTIONS.map((reactionKey) => {
-                                const emoji = EMOJIS[reactionKey]
-                                if (!emoji) {
-                                  return null
+                            return (
+                              <div
+                                key={message.id}
+                                id={`message-${message.id}`}
+                                data-message-id={message.id}
+                                className={
+                                  "group/message relative rounded-md px-1 py-1 transition-colors hover:bg-muted/40 " +
+                                  (isMentioningCurrentUser
+                                    ? "border border-amber-300/70 bg-amber-50/80"
+                                    : "")
                                 }
-
-                                return (
+                              >
+                                <div className="pointer-events-none absolute -top-8 right-0 z-10 flex items-center gap-1 rounded-md border bg-background p-1 opacity-0 shadow-sm transition-opacity group-hover/message:pointer-events-auto group-hover/message:opacity-100">
                                   <Button
-                                    key={reactionKey}
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6 text-sm"
-                                    onClick={() => toggleReaction(message.id, emoji)}
+                                    className="h-6 w-6"
+                                    onClick={() => setReplyingToId(message.id)}
                                   >
-                                    {emoji}
+                                    <CornerUpLeft className="h-3.5 w-3.5" />
                                   </Button>
-                                )
-                              })}
-                            </div>
+                                  {isOwnMessage && !message.is_deleted && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => beginEditMessage(message)}
+                                    >
+                                      <PencilLine className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                  {isOwnMessage && !message.is_deleted && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => deleteOwnMessage(message)}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                  {!message.is_deleted && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => void copyMessageText(message)}
+                                    >
+                                      <Copy className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                  {!message.is_deleted && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => void copyMessageLink(message)}
+                                    >
+                                      <Link2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                  {!message.is_deleted && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => void togglePinMessage(message)}
+                                    >
+                                      <Pin className={`h-3.5 w-3.5 ${message.is_pinned ? 'fill-current' : ''}`} />
+                                    </Button>
+                                  )}
+                                  <Separator orientation="vertical" className="h-4" />
+                                  {DEFAULT_REACTIONS.map((reactionKey) => {
+                                    const emoji = EMOJIS[reactionKey]
+                                    if (!emoji) {
+                                      return null
+                                    }
 
-                            {message.parent_id && (
-                              <div className="mb-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-                                <span>↳</span>
-                                {message.parent_context?.exists ? (
-                                  <span className="truncate">
-                                    Replying to <b>@{message.parent_context.username ?? "user"}</b>
-                                    {message.parent_context.content
-                                      ? `: ${message.parent_context.content}`
-                                      : ""}
-                                  </span>
-                                ) : (
-                                  <span className="italic">Original message deleted</span>
+                                    return (
+                                      <Button
+                                        key={reactionKey}
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 text-sm"
+                                        onClick={() => toggleReaction(message.id, emoji)}
+                                      >
+                                        {emoji}
+                                      </Button>
+                                    )
+                                  })}
+                                </div>
+
+                                {message.parent_id && (
+                                  <div className="mb-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                                    <span>↳</span>
+                                    {message.parent_context?.exists ? (
+                                      <span className="truncate">
+                                        Replying to <b>@{message.parent_context.username ?? "user"}</b>
+                                        {message.parent_context.content
+                                          ? `: ${message.parent_context.content}`
+                                          : ""}
+                                      </span>
+                                    ) : (
+                                      <span className="italic">Original message deleted</span>
+                                    )}
+                                  </div>
                                 )}
-                              </div>
-                            )}
 
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm text-foreground/90">{renderMessageContent(message.content)}</p>
-                              {message.is_edited && (
-                                <span className="text-[10px] text-muted-foreground italic">(edited)</span>
-                              )}
-                            </div>
+                                <div className="flex items-center gap-2">
+                                  {message.is_deleted ? (
+                                    <p className="text-sm text-muted-foreground italic">This message is deleted.</p>
+                                  ) : (
+                                    <p className="text-sm text-foreground/90">{renderMessageContent(message.content)}</p>
+                                  )}
+                                  {!message.is_deleted && message.is_edited && (
+                                    <span className="text-[10px] text-muted-foreground italic">(edited)</span>
+                                  )}
+                                  {!message.is_deleted && message.is_pinned && (
+                                    <span className="rounded-full border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-900">
+                                      pinned
+                                    </span>
+                                  )}
+                                </div>
 
-                            {!message.parent_id && message.reply_count > 0 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="mt-1 h-6 px-2 text-[11px] text-muted-foreground"
-                                onClick={() => toggleThread(message.id)}
-                              >
-                                {expandedThreadIds.includes(message.id) ? (
-                                  <>
-                                    <ChevronUp className="mr-1 h-3 w-3" />
-                                    Hide replies
-                                  </>
-                                ) : (
-                                  <>
+                                {!message.parent_id && message.reply_count > 0 && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="mt-1 h-6 px-2 text-[11px] text-muted-foreground"
+                                    onClick={() => openThreadPanel(message)}
+                                  >
                                     <ChevronDown className="mr-1 h-3 w-3" />
                                     View {message.reply_count} {message.reply_count === 1 ? "reply" : "replies"}
-                                  </>
+                                  </Button>
                                 )}
-                              </Button>
-                            )}
 
-                            {threadReplies.length > 0 && (
-                              <div className="mt-2 space-y-1 rounded-md border-l-2 border-muted pl-3">
-                                {threadReplies.map((reply) => (
-                                  <div key={`thread-${reply.id}`} className="text-xs text-muted-foreground">
-                                    <span className="font-medium text-foreground/90">{reply.username}</span>
-                                    <span className="mx-1">:</span>
-                                    <span>{reply.content}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {message.reactions.length > 0 && (
-                              <div className="mt-1 flex flex-wrap gap-1">
-                                {message.reactions.map((reaction) => (
-                                  <Tooltip key={`${message.id}-${reaction.emoji}`}>
-                                    <TooltipTrigger asChild>
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleReaction(message.id, reaction.emoji)}
-                                        className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-foreground/90 hover:bg-muted"
+                                {message.tags.length > 0 && (
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {message.tags.map((tag) => (
+                                      <span
+                                        key={`${message.id}-${tag}`}
+                                        className="rounded-full border bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground"
                                       >
-                                        <span>{reaction.emoji}</span>
-                                        <span>{reaction.count}</span>
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" className="max-w-56 text-xs leading-relaxed">
-                                      {reaction.reactors.length > 0
-                                        ? reaction.reactors.map((reactor) => reactor.username).join(", ")
-                                        : "No reactions yet"}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                ))}
+                                        #{tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {message.seen_by_count > 0 && (
+                                  <p className="mt-1 text-[10px] text-muted-foreground">
+                                    Seen by {message.seen_by_count} {message.seen_by_count === 1 ? "user" : "users"}
+                                  </p>
+                                )}
+
+                                {message.reactions.length > 0 && (
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {message.reactions.map((reaction) => (
+                                      <Tooltip key={`${message.id}-${reaction.emoji}`}>
+                                        <TooltipTrigger asChild>
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleReaction(message.id, reaction.emoji)}
+                                            className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-foreground/90 hover:bg-muted"
+                                          >
+                                            <span>{reaction.emoji}</span>
+                                            <span>{reaction.count}</span>
+                                          </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="max-w-56 text-xs leading-relaxed">
+                                          {reaction.reactors.length > 0
+                                            ? reaction.reactors.map((reactor) => reactor.username).join(", ")
+                                            : "No reactions yet"}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        )
-                      })}
+                            )
+                          })}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
               <div ref={messagesEndRef} />
             </>
           )}
         </div>
 
         <div className="px-4 pb-4 shrink-0">
+          {editingMessageId && (
+            <div className="mb-2 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <div className="flex items-start justify-between gap-2">
+                <span className="truncate">Editing your message</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => {
+                    setEditingMessageId(null)
+                    setMessageInput("")
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
           {replyingToId && (
             <div className="mb-2 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
               <div className="flex items-start justify-between gap-2">
@@ -613,7 +897,11 @@ export default function ChannelPage() {
                       sendCurrentMessage()
                     }
                   }}
-                  placeholder={`Message #${channelDetails?.name || "channel"}`}
+                  placeholder={
+                    editingMessageId
+                      ? "Edit your message"
+                      : `Message #${channelDetails?.name || "channel"}`
+                  }
                   className="flex-1 border-0 focus-visible:ring-0 px-0 h-9 shadow-none text-sm bg-transparent"
                 />
                 <div className="flex items-center gap-1 pr-1">
@@ -641,6 +929,67 @@ export default function ChannelPage() {
             <b>Return</b> to send, <b>Shift + Return</b> for new line
           </p>
         </div>
+
+        <Sheet open={threadPanelOpen} onOpenChange={setThreadPanelOpen}>
+          <SheetContent side="right" className="w-full sm:max-w-lg">
+            <SheetHeader>
+              <SheetTitle>Thread</SheetTitle>
+              <SheetDescription>
+                {threadRootMessage ? `Replies to @${threadRootMessage.username}` : "Open a message thread"}
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4">
+              {threadRootMessage && (
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold">@{threadRootMessage.username}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(threadRootMessage.created_at).toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </span>
+                  </div>
+                  <p className="text-sm text-foreground/90">{threadRootMessage.content}</p>
+                </div>
+              )}
+
+              {threadMessages.length > 0 ? (
+                threadMessages
+                  .filter((message) => message.id !== threadRootMessage?.id)
+                  .map((message) => (
+                    <div key={message.id} className="rounded-lg border p-3">
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold">@{message.username}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(message.created_at).toLocaleTimeString("en-US", {
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground/90">{message.content}</p>
+                    </div>
+                  ))
+              ) : (
+                <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                  No replies yet.
+                </div>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        <SearchMessagesPanel
+          isOpen={searchPanelOpen}
+          onOpenChange={setSearchPanelOpen}
+          onSelectMessage={jumpToMessage}
+          workspaceSlug={workspaceSlug}
+          channelId={channelIdSlug}
+        />
       </div>
     </TooltipProvider>
   )

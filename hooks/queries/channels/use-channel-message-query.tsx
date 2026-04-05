@@ -42,6 +42,13 @@ export const useChannelMessageQuery = (
         parent_context: message.parent_context ?? null,
         mentioned_user_ids: message.mentioned_user_ids ?? [],
         reply_count: typeof message.reply_count === "number" ? message.reply_count : 0,
+        is_pinned: Boolean(message.is_pinned),
+        pinned_at: message.pinned_at ?? null,
+        pinned_by: message.pinned_by ?? null,
+        tags: message.tags ?? [],
+        seen_by_count: typeof message.seen_by_count === "number" ? message.seen_by_count : 0,
+        seen_by_user_ids: message.seen_by_user_ids ?? [],
+        is_deleted: Boolean(message.is_deleted),
     });
 
     const applyReactionUpdate = (payload: { messageId: string; reactions: MessageReactionGroup[] }) => {
@@ -51,6 +58,25 @@ export const useChannelMessageQuery = (
                     ? { ...message, reactions: payload.reactions }
                     : message,
             ),
+        );
+    };
+
+    const refreshMessages = () => {
+        if (!socket || !workspaceSlug || !channelId) return;
+
+        socket.emit(
+            "messages:history",
+            { workspaceSlug, channelId },
+            (response: { success: boolean; data?: Message[] }) => {
+                if (response.success && response.data) {
+                    setMessages(response.data.map(normalizeMessage));
+                    setIsLoading(false);
+                    return;
+                }
+
+                setError("Failed to load messages");
+                setIsLoading(false);
+            }
         );
     };
 
@@ -69,19 +95,7 @@ export const useChannelMessageQuery = (
         );
 
         // Fetch message history
-        socket.emit(
-            "messages:history",
-            { workspaceSlug, channelId },
-            (response: { success: boolean; data?: Message[] }) => {
-                if (response.success && response.data) {
-                    setMessages(response.data.map(normalizeMessage));
-                    setIsLoading(false);
-                } else {
-                    setError("Failed to load messages");
-                    setIsLoading(false);
-                }
-            }
-        );
+        refreshMessages();
 
         // Listen for new messages
         const handleMessageCreated = (message: Message) => {
@@ -110,7 +124,22 @@ export const useChannelMessageQuery = (
         // Listen for message deletes
         const handleMessageDeleted = (payload: { id: string }) => {
             console.log("🗑️ Message deleted:", payload.id);
-            setMessages((prev) => prev.filter((msg) => msg.id !== payload.id));
+            setMessages((prev) =>
+                prev.map((msg) =>
+                    msg.id === payload.id
+                        ? {
+                            ...msg,
+                            is_deleted: true,
+                            is_edited: false,
+                            is_pinned: false,
+                            pinned_at: null,
+                            pinned_by: null,
+                            tags: [],
+                            reactions: [],
+                        }
+                        : msg,
+                ),
+            );
             void queryClient.invalidateQueries({ queryKey: CHANNELS_QUERY_KEY(workspaceSlug) });
         };
 
@@ -283,6 +312,7 @@ export const useChannelMessageQuery = (
         messages,
         isLoading,
         error,
+        refreshMessages,
         sendMessage,
         updateMessage,
         deleteMessage,
