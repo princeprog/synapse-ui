@@ -28,4 +28,6 @@ export type Message = {
     username: string;
     reactions: MessageReactionGroup[];
     parent_context: MessageParentContext | null;
+    mentioned_user_ids: string[];
+    reply_count: number;
 }

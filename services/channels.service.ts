@@ -45,6 +45,19 @@ class ChannelsService {
       SYNAPSE_API_ENDPOINTS.CHANNELS.DELETE(workspaceSlug, channelId),
     );
   }
+
+  async markAsRead(workspaceSlug: string, channelId: string): Promise<{
+    channelId: string;
+    lastReadMessageId: string | null;
+    lastReadAt: string;
+    unreadCount: number;
+    mentionUnreadCount: number;
+  }> {
+    return apiService.request(
+      'PATCH',
+      SYNAPSE_API_ENDPOINTS.CHANNELS.MARK_READ(workspaceSlug, channelId),
+    );
+  }
 }
 
 export const channelsService = new ChannelsService();

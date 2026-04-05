@@ -15,4 +15,8 @@ export interface AuthMessageResponse {
   message: string;
 }
 
-export type ProfileResponse = Record<string, unknown>;
+export interface ProfileResponse {
+  userId: string;
+  username: string;
+  sessionId: number;
+}

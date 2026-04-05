@@ -10,6 +10,7 @@ import { NavUser } from "@/components/nav-user"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
 import { useWorkspacesQuery } from "@/hooks/queries/workspaces/useWorkspacesQuery"
 import { useWorkspaceSidebarChannels } from "@/hooks/useWorkspaceSidebarChannels"
+import { useWorkspaceNotificationsSocket } from "@/hooks/workspace/useWorkspaceNotificationsSocket"
 import {
   Sidebar,
   SidebarContent,
@@ -83,6 +84,8 @@ function LeaveWorkspaceAction() {
 }
 
 export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
+  useWorkspaceNotificationsSocket()
+
   const {
     channelItems,
     isLoading,

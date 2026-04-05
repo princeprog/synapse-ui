@@ -38,6 +38,8 @@ export const SYNAPSE_API_ENDPOINTS = {
       `/workspaces/${workspaceSlug}/channels/${channelId}`,
     UPDATE: (workspaceSlug: string, channelId: string) =>
       `/workspaces/${workspaceSlug}/channels/${channelId}`,
+    MARK_READ: (workspaceSlug: string, channelId: string) =>
+      `/workspaces/${workspaceSlug}/channels/${channelId}/read`,
     DELETE: (workspaceSlug: string, channelId: string) =>
       `/workspaces/${workspaceSlug}/channels/${channelId}`,
   },

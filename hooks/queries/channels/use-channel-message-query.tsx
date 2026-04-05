@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSocket } from "@/hooks/use-socket";
 import type { Message, MessageReactionGroup } from "@/lib/types/message.types";
+import { CHANNELS_QUERY_KEY } from "./useChannelsQuery";
 
 type ToggleReactionResult = {
     messageId: string;
@@ -29,6 +31,7 @@ export const useChannelMessageQuery = (
     channelId: string
 ) => {
     const socket = useSocket();
+    const queryClient = useQueryClient();
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -37,6 +40,8 @@ export const useChannelMessageQuery = (
         ...message,
         reactions: message.reactions ?? [],
         parent_context: message.parent_context ?? null,
+        mentioned_user_ids: message.mentioned_user_ids ?? [],
+        reply_count: typeof message.reply_count === "number" ? message.reply_count : 0,
     });
 
     const applyReactionUpdate = (payload: { messageId: string; reactions: MessageReactionGroup[] }) => {
@@ -82,6 +87,7 @@ export const useChannelMessageQuery = (
         const handleMessageCreated = (message: Message) => {
             console.log("📩 New message received:", message);
             setMessages((prev) => [...prev, normalizeMessage(message)]);
+            void queryClient.invalidateQueries({ queryKey: CHANNELS_QUERY_KEY(workspaceSlug) });
         };
 
         // Listen for message updates
@@ -98,12 +104,14 @@ export const useChannelMessageQuery = (
                         : msg,
                 )
             );
+            void queryClient.invalidateQueries({ queryKey: CHANNELS_QUERY_KEY(workspaceSlug) });
         };
 
         // Listen for message deletes
         const handleMessageDeleted = (payload: { id: string }) => {
             console.log("🗑️ Message deleted:", payload.id);
             setMessages((prev) => prev.filter((msg) => msg.id !== payload.id));
+            void queryClient.invalidateQueries({ queryKey: CHANNELS_QUERY_KEY(workspaceSlug) });
         };
 
         const handleReactionToggled = (payload: ToggleReactionResult) => {
@@ -123,7 +131,7 @@ export const useChannelMessageQuery = (
             socket.off("messages:deleted", handleMessageDeleted);
             socket.off("messages:reaction:toggled", handleReactionToggled);
         };
-    }, [socket, workspaceSlug, channelId]);
+    }, [socket, workspaceSlug, channelId, queryClient]);
 
     // Send a new message
     const sendMessage = (content: string, parentId?: string) => {

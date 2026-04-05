@@ -30,6 +30,12 @@ export const useWorkspaceNotificationsSocket = () => {
         queryKey: WORKSPACE_NOTIFICATIONS_QUERY_KEY,
       });
       void queryClient.invalidateQueries({ queryKey: WORKSPACES_QUERY_KEY });
+      void queryClient.invalidateQueries({
+        predicate: (query) =>
+          Array.isArray(query.queryKey) &&
+          query.queryKey[0] === 'workspaces' &&
+          query.queryKey[2] === 'channels',
+      });
     };
 
     socket.on('notification.created', handleNotificationCreated);

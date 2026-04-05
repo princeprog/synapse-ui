@@ -40,6 +40,8 @@ export function NavProjects({
     id: string
     name: string
     url: string
+    unreadCount: number
+    mentionUnreadCount: number
   }[]
   onCreateChannel: () => void
   onRenameChannel: (channel: { id: string; name: string }) => void
@@ -95,7 +97,21 @@ export function NavProjects({
             <SidebarMenuButton asChild>
               <Link href={channel.url}>
                 <HashIcon className="text-sidebar-foreground/70" />
-                <span>{channel.name}</span>
+                <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                  <span className="truncate">{channel.name}</span>
+                  <span className="ml-1 flex items-center gap-1 pr-6 text-[11px] font-semibold">
+                    {channel.mentionUnreadCount > 0 && (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">
+                        @
+                      </span>
+                    )}
+                    {channel.unreadCount > 0 && (
+                      <span className="rounded bg-sidebar-accent px-1.5 py-0.5 tabular-nums">
+                        {channel.unreadCount > 99 ? "99+" : channel.unreadCount}
+                      </span>
+                    )}
+                  </span>
+                </span>
               </Link>
             </SidebarMenuButton>
             <DropdownMenu>
