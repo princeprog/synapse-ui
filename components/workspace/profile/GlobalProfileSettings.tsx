@@ -14,6 +14,7 @@ type ProfileFormState = {
   username: string;
   email: string;
   avatarUrl: string;
+  timeZone: string;
 };
 
 export default function GlobalProfileSettings() {
@@ -32,6 +33,7 @@ export default function GlobalProfileSettings() {
       username: profile?.username || "",
       email: profile?.email || "",
       avatarUrl: profile?.avatarUrl || "",
+      timeZone: profile?.timeZone || "",
     };
 
     return {
@@ -39,6 +41,7 @@ export default function GlobalProfileSettings() {
       username: formOverrides.username ?? fromProfile.username,
       email: formOverrides.email ?? fromProfile.email,
       avatarUrl: formOverrides.avatarUrl ?? fromProfile.avatarUrl,
+      timeZone: formOverrides.timeZone ?? fromProfile.timeZone,
     };
   }, [formOverrides, profile]);
 
@@ -94,6 +97,7 @@ export default function GlobalProfileSettings() {
           username: form.username.trim(),
           email: form.email.trim(),
           avatarUrl: form.avatarUrl.trim() || null,
+          timeZone: form.timeZone.trim() || null,
         },
       },
       {
@@ -200,6 +204,26 @@ export default function GlobalProfileSettings() {
                 onChange={(event) => handleInputChange("email", event.target.value)}
                 placeholder="you@example.com"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="timezone">Timezone</Label>
+              <Input
+                id="timezone"
+                value={form.timeZone}
+                onChange={(event) => handleInputChange("timeZone", event.target.value)}
+                placeholder="e.g. Asia/Manila"
+                list="timezone-options"
+              />
+              <datalist id="timezone-options">
+                <option value="UTC" />
+                <option value="Asia/Manila" />
+                <option value="Asia/Singapore" />
+                <option value="Asia/Tokyo" />
+                <option value="Europe/London" />
+                <option value="Europe/Paris" />
+                <option value="America/New_York" />
+                <option value="America/Los_Angeles" />
+              </datalist>
             </div>
           </section>
 

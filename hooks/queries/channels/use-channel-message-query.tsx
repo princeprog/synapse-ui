@@ -38,6 +38,7 @@ export const useChannelMessageQuery = (
 
     const normalizeMessage = (message: Message): Message => ({
         ...message,
+        avatarUrl: message.avatarUrl ?? message.avatar_url ?? null,
         reactions: message.reactions ?? [],
         parent_context: message.parent_context ?? null,
         mentioned_user_ids: message.mentioned_user_ids ?? [],
