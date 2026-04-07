@@ -61,7 +61,12 @@ export default function ChannelPage() {
     queryFn: () => authService.getProfile(),
   })
 
-  const currentUserId = typeof profile?.userId === "string" ? profile.userId : null
+  const currentUserId =
+    typeof (profile as { userId?: unknown } | null)?.userId === "string"
+      ? ((profile as { userId?: string }).userId ?? null)
+      : typeof profile?.id === "string"
+        ? profile.id
+        : null
   const currentUsername = typeof profile?.username === "string" ? profile.username : null
 
   const {
@@ -158,6 +163,27 @@ export default function ChannelPage() {
   }, [workspaceMembers, mentionQuery])
 
   const mentionMenuOpen = mentionStart !== null && mentionSuggestions.length > 0
+  const profileAvatarUrl =
+    typeof (profile as { avatarUrl?: unknown } | null)?.avatarUrl === "string"
+      ? ((profile as { avatarUrl?: string | null }).avatarUrl ?? "")
+      : ""
+  const memberAvatarByUsername = useMemo(() => {
+    const avatarMap = new Map<string, string>()
+
+    workspaceMembers.forEach((member) => {
+      const memberAvatarUrl = member.avatarUrl ?? ""
+
+      if (memberAvatarUrl) {
+        avatarMap.set(member.username.toLowerCase(), memberAvatarUrl)
+      }
+    })
+
+    if (currentUsername && profileAvatarUrl) {
+      avatarMap.set(currentUsername.toLowerCase(), profileAvatarUrl)
+    }
+
+    return avatarMap
+  }, [workspaceMembers, currentUsername, profileAvatarUrl])
 
   const getMentionContext = (value: string, cursorPosition: number) => {
     const mentionSymbolIndex = value.lastIndexOf("@", Math.max(0, cursorPosition - 1))
@@ -529,6 +555,12 @@ export default function ChannelPage() {
                   day: "numeric",
                   year: "numeric",
                 })
+                const firstMessage = group.messages[0]
+                const groupAvatar =
+                  firstMessage.avatarUrl ??
+                  firstMessage.avatar_url ??
+                  memberAvatarByUsername.get(group.username.toLowerCase()) ??
+                  ""
                 const previousDay =
                   i > 0
                     ? new Date(groupedMessages[i - 1].messages[0].created_at).toLocaleDateString("en-US", {
@@ -551,7 +583,7 @@ export default function ChannelPage() {
                     )}
                     <div className="flex gap-3 group hover:bg-muted/30 p-2 rounded-lg transition-colors">
                       <Avatar size="lg">
-                        <AvatarImage src="" />
+                        <AvatarImage src={groupAvatar} alt={`${group.username} avatar`} />
                         <AvatarFallback>{group.username.substring(0, 2).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col w-full">
