@@ -2,6 +2,7 @@ export interface WorkspaceMember {
   userId: string;
   username: string;
   email: string;
+  avatarUrl?: string | null;
   role: string;
   joinedAt: string;
 }

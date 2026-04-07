@@ -57,6 +57,8 @@ class WorkspacesService {
         user_id: string;
         username: string;
         email: string;
+        avatar_url?: string | null;
+        avatarUrl?: string | null;
         role: string;
         joined_at: string;
       }>
@@ -66,6 +68,7 @@ class WorkspacesService {
       userId: member.user_id,
       username: member.username,
       email: member.email,
+      avatarUrl: member.avatarUrl ?? member.avatar_url ?? null,
       role: member.role,
       joinedAt: member.joined_at,
     }));
@@ -80,6 +83,8 @@ class WorkspacesService {
       user_id: string;
       username: string;
       email: string;
+      avatar_url?: string | null;
+      avatarUrl?: string | null;
       role: string;
       joined_at: string;
     }, UpdateWorkspaceMemberRoleRequest>(
@@ -92,6 +97,7 @@ class WorkspacesService {
       userId: member.user_id,
       username: member.username,
       email: member.email,
+      avatarUrl: member.avatarUrl ?? member.avatar_url ?? null,
       role: member.role,
       joinedAt: member.joined_at,
     };

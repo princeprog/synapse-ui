@@ -21,6 +21,8 @@ export type Message = {
     id: string;
     channel_id: string;
     sender_id: string;
+    avatar_url?: string | null;
+    avatarUrl?: string | null;
     parent_id: string | null;
     content: string;
     is_edited: boolean;

@@ -15,11 +15,6 @@ export interface AuthMessageResponse {
   message: string;
 }
 
-export interface ProfileResponse {
-  userId: string;
-  username: string;
-  sessionId: number;
-}
 export interface UserProfile {
   id: string;
   username: string;
@@ -28,16 +23,41 @@ export interface UserProfile {
   firstName?: string;
   lastName?: string;
   avatarUrl?: string | null;
+  timeZone?: string | null;
   emailVerified?: boolean;
+  sessionId?: number;
 }
 
-export interface UpdateProfileRequest {
+export interface UpdateProfileInput {
   username?: string;
   email?: string;
   displayName?: string;
   firstName?: string;
   lastName?: string;
   avatarUrl?: string | null;
+  timeZone?: string | null;
 }
 
+export interface ProfileResponse {
+  id: string;
+  userId: string;
+  username: string;
+  email: string;
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string | null;
+  timeZone?: string | null;
+  emailVerified?: boolean;
+  sessionId?: number;
+}
 
+export interface UpdateProfileRequest {
+  username?: string;
+  email?: string;
+  display_name?: string;
+  first_name?: string;
+  last_name?: string;
+  avatar_url?: string | null;
+  timezone?: string | null;
+}
