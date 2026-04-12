@@ -2,12 +2,8 @@
 
 import type { ComponentProps } from "react"
 import Link from "next/link"
-<<<<<<< HEAD
-import { useParams } from "next/navigation"
-=======
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 
->>>>>>> 9cb967b (Add global profile settings and profile hooks)
 import { ChannelCreateModal } from "@/components/workspace/modal/channel-create-modal"
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
@@ -38,6 +34,7 @@ const LEAVE_WORKSPACE_LINK_CLASSNAME =
   "inline-flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-sm font-medium text-red-500 transition-colors hover:bg-sidebar-accent hover:text-red-600"
 
 export const paramsToExtract = () => {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const params = useParams()
   const slugParam = params?.slug
   const workspaceSlug = typeof slugParam === "string" ? slugParam : (slugParam?.[0] ?? "")
@@ -80,12 +77,7 @@ function LeaveWorkspaceAction() {
 }
 
 export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
-<<<<<<< HEAD
-  useWorkspaceNotificationsSocket()
-
-=======
   const router = useRouter()
->>>>>>> 9cb967b (Add global profile settings and profile hooks)
   const {
     channelItems,
     isLoading,
@@ -104,6 +96,7 @@ export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
   const { data: workspaces, isLoading: isWorkspacesLoading } = useWorkspacesQuery()
 
   const userName =
+    profile?.displayName?.trim() ||
     [profile?.firstName, profile?.lastName].filter(Boolean).join(" ") ||
     profile?.username ||
     "User"
