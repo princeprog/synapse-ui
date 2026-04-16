@@ -604,6 +604,7 @@ export default function ChannelPage() {
                               Array.isArray(message.mentioned_user_ids) &&
                               message.mentioned_user_ids.includes(currentUserId ?? "")
                             const isOwnMessage = message.sender_id === currentUserId
+                            const isLastMessage = message === group.messages[group.messages.length - 1]
 
                             return (
                               <div
@@ -762,9 +763,16 @@ export default function ChannelPage() {
                                   </div>
                                 )}
 
-                                {message.seen_by_count > 0 && (
+                                {isLastMessage && message.seen_by_user_ids && message.seen_by_user_ids.length > 0 && (
                                   <p className="mt-1 text-[10px] text-muted-foreground">
-                                    Seen by {message.seen_by_count} {message.seen_by_count === 1 ? "user" : "users"}
+                                    Seen by{" "}
+                                    {message.seen_by_user_ids
+                                      .map(
+                                        (userId) =>
+                                          workspaceMembers.find((member) => member.userId === userId)?.username ||
+                                          "unknown",
+                                      )
+                                      .join(", ")}
                                   </p>
                                 )}
 
