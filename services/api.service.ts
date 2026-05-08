@@ -17,7 +17,7 @@ class ApiService {
   }
 
   private normalizeBaseUrl(baseUrl?: string): string {
-    const fallback = 'http://localhost:3000';
+    const fallback = 'http://localhost:3001';
     if (!baseUrl) {
       return fallback;
     }

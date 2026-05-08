@@ -1,4 +1,4 @@
-export const SYNAPSE_API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+export const SYNAPSE_API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export const SYNAPSE_API_ENDPOINTS = {
   AUTH: {
@@ -27,6 +27,8 @@ export const SYNAPSE_API_ENDPOINTS = {
     MEMBERS: (workspaceSlug: string) => `/workspaces/${workspaceSlug}/members`,
     UPDATE_MEMBER_ROLE: (workspaceSlug: string, memberId: string) =>
       `/workspaces/${workspaceSlug}/members/${memberId}`,
+    UPDATE_MEMBER_PROFILE: (workspaceSlug: string, memberId: string) =>
+      `/workspaces/${workspaceSlug}/members/${memberId}/profile`,
     REMOVE_MEMBER: (workspaceSlug: string, memberId: string) =>
       `/workspaces/${workspaceSlug}/members/${memberId}`,
     INVITE_MEMBER: (workspaceSlug: string) => `/workspaces/${workspaceSlug}/invitations`,

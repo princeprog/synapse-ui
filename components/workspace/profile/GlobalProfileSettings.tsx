@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUpdateProfileMutation } from "@/hooks/mutation/auth/useUpdateProfileMutation";
 import { useProfileQuery } from "@/hooks/queries/auth/useProfileQuery";
+import WorkspaceProfileSettings from "@/components/workspace/profile/WorkspaceProfileSettings";
 
 type ProfileFormState = {
   displayName: string;
@@ -130,7 +131,7 @@ export default function GlobalProfileSettings() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-10 md:px-8">
+    <main className="mx-auto w-full max-w-3xl space-y-6 px-6 py-10 md:px-8">
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Global Profile Settings</h1>
@@ -256,6 +257,7 @@ export default function GlobalProfileSettings() {
           </div>
         </form>
       </div>
+      <WorkspaceProfileSettings showWorkspacePicker />
     </main>
   );
 }

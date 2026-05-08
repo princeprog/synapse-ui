@@ -3,12 +3,19 @@ export interface WorkspaceMember {
   username: string;
   email: string;
   avatarUrl?: string | null;
+  workspaceDisplayName?: string | null;
+  jobTitle?: string | null;
   role: string;
   joinedAt: string;
 }
 
 export interface UpdateWorkspaceMemberRoleRequest {
   role: 'Admin' | 'Member';
+}
+
+export interface UpdateWorkspaceMemberProfileRequest {
+  workspaceDisplayName?: string;
+  jobTitle?: string;
 }
 
 export interface DeleteWorkspaceMemberResponse {

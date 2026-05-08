@@ -25,8 +25,13 @@ export function NavMain({
   const router = useRouter()
   const params = useParams()
   const workspaeceSlug = typeof params.slug === "string" ? params.slug : (params.slug?.[0] ?? "")
+  const hasWorkspace = Boolean(workspaeceSlug)
 
   const handleNavigation = (url: string) => {
+    if (!hasWorkspace) {
+      return
+    }
+
     router.push(`/workspace/${workspaeceSlug}/${url}`)
   }
 
@@ -40,6 +45,7 @@ export function NavMain({
                 <SidebarMenuButton
                   tooltip="Quick Create"
                   className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
+                  disabled={!hasWorkspace}
                 >
                   <IconCirclePlusFilled />
                   <span>Invite Members</span>
@@ -59,7 +65,11 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title} onClick={()=>handleNavigation(item.url)}>
+              <SidebarMenuButton
+                tooltip={item.title}
+                onClick={() => handleNavigation(item.url)}
+                disabled={!hasWorkspace}
+              >
                 {item.icon}
                 <span>{item.title}</span>
               </SidebarMenuButton>

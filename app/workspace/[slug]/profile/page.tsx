@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import WorkspaceProfileSettings from "@/components/workspace/profile/WorkspaceProfileSettings";
 
 type WorkspaceSlugProfilePageParams = {
   slug: string;
@@ -9,6 +9,7 @@ export default async function WorkspaceScopedProfilePage({
 }: {
   params: WorkspaceSlugProfilePageParams | Promise<WorkspaceSlugProfilePageParams>;
 }) {
-  await params;
-  redirect("/workspace/profile");
+  const resolvedParams = await params;
+
+  return <WorkspaceProfileSettings workspaceSlug={resolvedParams.slug} />;
 }

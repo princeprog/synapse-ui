@@ -9,6 +9,7 @@ import {
   DeleteWorkspaceInvitationResponse,
   DeleteWorkspaceMemberResponse,
   InviteWorkspaceMemberRequest,
+  UpdateWorkspaceMemberProfileRequest,
   UpdateWorkspaceMemberRoleRequest,
   WorkspaceInvitation,
   WorkspaceMember,
@@ -59,6 +60,10 @@ class WorkspacesService {
         email: string;
         avatar_url?: string | null;
         avatarUrl?: string | null;
+        workspace_display_name?: string | null;
+        workspaceDisplayName?: string | null;
+        job_title?: string | null;
+        jobTitle?: string | null;
         role: string;
         joined_at: string;
       }>
@@ -69,6 +74,9 @@ class WorkspacesService {
       username: member.username,
       email: member.email,
       avatarUrl: member.avatarUrl ?? member.avatar_url ?? null,
+      workspaceDisplayName:
+        member.workspaceDisplayName ?? member.workspace_display_name ?? null,
+      jobTitle: member.jobTitle ?? member.job_title ?? null,
       role: member.role,
       joinedAt: member.joined_at,
     }));
@@ -85,6 +93,10 @@ class WorkspacesService {
       email: string;
       avatar_url?: string | null;
       avatarUrl?: string | null;
+      workspace_display_name?: string | null;
+      workspaceDisplayName?: string | null;
+      job_title?: string | null;
+      jobTitle?: string | null;
       role: string;
       joined_at: string;
     }, UpdateWorkspaceMemberRoleRequest>(
@@ -98,6 +110,48 @@ class WorkspacesService {
       username: member.username,
       email: member.email,
       avatarUrl: member.avatarUrl ?? member.avatar_url ?? null,
+      workspaceDisplayName:
+        member.workspaceDisplayName ?? member.workspace_display_name ?? null,
+      jobTitle: member.jobTitle ?? member.job_title ?? null,
+      role: member.role,
+      joinedAt: member.joined_at,
+    };
+  }
+
+  async updateMemberProfile(
+    workspaceSlug: string,
+    memberId: string,
+    payload: UpdateWorkspaceMemberProfileRequest,
+  ): Promise<WorkspaceMember> {
+    const member = await apiService.request<{
+      user_id: string;
+      username: string;
+      email: string;
+      avatar_url?: string | null;
+      avatarUrl?: string | null;
+      workspace_display_name?: string | null;
+      workspaceDisplayName?: string | null;
+      job_title?: string | null;
+      jobTitle?: string | null;
+      role: string;
+      joined_at: string;
+    }, UpdateWorkspaceMemberProfileRequest>(
+      'PATCH',
+      SYNAPSE_API_ENDPOINTS.WORKSPACES.UPDATE_MEMBER_PROFILE(
+        workspaceSlug,
+        memberId,
+      ),
+      payload,
+    );
+
+    return {
+      userId: member.user_id,
+      username: member.username,
+      email: member.email,
+      avatarUrl: member.avatarUrl ?? member.avatar_url ?? null,
+      workspaceDisplayName:
+        member.workspaceDisplayName ?? member.workspace_display_name ?? null,
+      jobTitle: member.jobTitle ?? member.job_title ?? null,
       role: member.role,
       joinedAt: member.joined_at,
     };
